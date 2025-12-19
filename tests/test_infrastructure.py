@@ -52,6 +52,30 @@ class TestModuleImports:
         except ImportError as e:
             pytest.fail(f"Failed to import src.validators: {e}")
 
+    def test_import_models_module(self):
+        """Test that the models module can be imported"""
+        try:
+            from src import models
+            assert models is not None
+        except ImportError as e:
+            pytest.fail(f"Failed to import src.models: {e}")
+
+    def test_import_service_module(self):
+        """Test that the service module can be imported"""
+        try:
+            from src import service
+            assert service is not None
+        except ImportError as e:
+            pytest.fail(f"Failed to import src.service: {e}")
+
+    def test_import_exceptions_module(self):
+        """Test that the exceptions module can be imported"""
+        try:
+            from src import exceptions
+            assert exceptions is not None
+        except ImportError as e:
+            pytest.fail(f"Failed to import src.exceptions: {e}")
+
     def test_all_constants_available(self):
         """Test that all required constants are defined"""
         from src.constants import (
@@ -85,6 +109,43 @@ class TestModuleImports:
         assert callable(validate_student_not_registered)
         assert callable(validate_student_registered)
         assert callable(validate_capacity_available)
+
+    def test_all_models_available(self):
+        """Test that all model classes are available"""
+        from src.models import (
+            SignupRequest,
+            UnregisterRequest,
+            ActivityDetails,
+            MessageResponse
+        )
+        
+        assert SignupRequest is not None
+        assert UnregisterRequest is not None
+        assert ActivityDetails is not None
+        assert MessageResponse is not None
+
+    def test_all_exceptions_available(self):
+        """Test that all exception classes are available"""
+        from src.exceptions import (
+            ActivityError,
+            ActivityNotFoundError,
+            ActivityCapacityError,
+            StudentRegistrationError,
+            StudentAlreadyRegisteredError,
+            StudentNotRegisteredError
+        )
+        
+        assert issubclass(ActivityNotFoundError, ActivityError)
+        assert issubclass(ActivityCapacityError, ActivityError)
+        assert issubclass(StudentAlreadyRegisteredError, StudentRegistrationError)
+        assert issubclass(StudentNotRegisteredError, StudentRegistrationError)
+
+    def test_service_class_available(self):
+        """Test that the ActivityService class is available"""
+        from src.service import ActivityService
+        
+        assert ActivityService is not None
+        assert callable(ActivityService)
 
 
 class TestApplicationCreation:
@@ -308,17 +369,19 @@ class TestStaticFiles:
 class TestEndpointFunctions:
     """Test that endpoint handler functions work correctly"""
 
-    def test_get_activities_by_language_function(self):
-        """Test the get_activities_by_language helper function"""
-        from src.app import get_activities_by_language
+    def test_activity_service_get_all_activities(self):
+        """Test the ActivityService.get_all_activities method"""
+        from src.app import get_activity_service
+        
+        service = get_activity_service()
         
         # Test English
-        activities_en = get_activities_by_language("en")
+        activities_en = service.get_all_activities("en")
         assert isinstance(activities_en, dict)
         assert len(activities_en) > 0
         
         # Test Hungarian
-        activities_hu = get_activities_by_language("hu")
+        activities_hu = service.get_all_activities("hu")
         assert isinstance(activities_hu, dict)
         assert len(activities_hu) > 0
         

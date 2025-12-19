@@ -15,10 +15,9 @@ from typing import Dict, List, Any
 import os
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Depends
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse
-from pydantic import BaseModel, EmailStr
 
 try:
     # Try relative imports first (when running directly)
@@ -26,13 +25,15 @@ try:
         SupportedLanguage,
         DEFAULT_LANGUAGE,
         HTTP_NOT_FOUND,
-        MSG_ACTIVITY_NOT_FOUND
+        HTTP_BAD_REQUEST
     )
-    from validators import (
-        validate_and_translate_activity_name,
-        validate_student_not_registered,
-        validate_student_registered,
-        validate_capacity_available
+    from models import SignupRequest, UnregisterRequest, MessageResponse
+    from service import ActivityService
+    from exceptions import (
+        ActivityNotFoundError,
+        ActivityCapacityError,
+        StudentAlreadyRegisteredError,
+        StudentNotRegisteredError
     )
 except ImportError:
     # Fall back to absolute imports (when imported as module)
@@ -40,32 +41,16 @@ except ImportError:
         SupportedLanguage,
         DEFAULT_LANGUAGE,
         HTTP_NOT_FOUND,
-        MSG_ACTIVITY_NOT_FOUND
+        HTTP_BAD_REQUEST
     )
-    from src.validators import (
-        validate_and_translate_activity_name,
-        validate_student_not_registered,
-        validate_student_registered,
-        validate_capacity_available
+    from src.models import SignupRequest, UnregisterRequest, MessageResponse
+    from src.service import ActivityService
+    from src.exceptions import (
+        ActivityNotFoundError,
+        ActivityCapacityError,
+        StudentAlreadyRegisteredError,
+        StudentNotRegisteredError
     )
-
-
-class SignupRequest(BaseModel):
-    """Request model for signing up for an activity.
-    
-    Attributes:
-        email (EmailStr): The student's email address.
-    """
-    email: EmailStr
-
-
-class UnregisterRequest(BaseModel):
-    """Request model for unregistering from an activity.
-    
-    Attributes:
-        email (EmailStr): The student's email address.
-    """
-    email: EmailStr
 
 
 app = FastAPI(
@@ -243,33 +228,20 @@ participants_storage: Dict[str, List[str]] = {
 }
 
 
-def get_activities_by_language(lang: str = "en") -> Dict[str, Dict[str, Any]]:
-    """Get activities with participants in the specified language.
+# Initialize the activity service
+def get_activity_service() -> ActivityService:
+    """Dependency injection for ActivityService.
     
-    Args:
-        lang: Language code ("en" or "hu")
-        
     Returns:
-        Dictionary of activities with current participants
+        ActivityService: Configured activity service instance
     """
-    # Select the appropriate activities dictionary
-    if lang == "hu":
-        activities_dict = activities_hu.copy()
-    else:
-        activities_dict = activities_en.copy()
-    
-    # Get English activity keys for participant lookup
-    if lang == "hu":
-        # For Hungarian, we need to map back to English keys
-        for hu_name, activity_data in activities_dict.items():
-            en_name = activity_name_mapping_reverse.get(hu_name, hu_name)
-            activity_data["participants"] = participants_storage.get(en_name, [])
-    else:
-        # For English, direct mapping
-        for en_name, activity_data in activities_dict.items():
-            activity_data["participants"] = participants_storage.get(en_name, [])
-    
-    return activities_dict
+    return ActivityService(
+        activities_en=activities_en,
+        activities_hu=activities_hu,
+        activity_name_mapping=activity_name_mapping,
+        activity_name_mapping_reverse=activity_name_mapping_reverse,
+        participants_storage=participants_storage
+    )
 
 
 @app.get("/")
@@ -284,12 +256,14 @@ def root() -> RedirectResponse:
 
 @app.get("/activities")
 def get_activities(
-    lang: str = Query(DEFAULT_LANGUAGE, pattern=f"^({SupportedLanguage.ENGLISH.value}|{SupportedLanguage.HUNGARIAN.value})$")
+    lang: str = Query(DEFAULT_LANGUAGE, pattern=f"^({SupportedLanguage.ENGLISH.value}|{SupportedLanguage.HUNGARIAN.value})$"),
+    service: ActivityService = Depends(get_activity_service)
 ) -> Dict[str, Dict[str, Any]]:
     """Retrieve all available extracurricular activities in the specified language.
     
     Args:
         lang: Language code - "en" for English or "hu" for Hungarian (default: "en")
+        service: Injected activity service
     
     Returns:
         Dict[str, Dict[str, Any]]: A dictionary of all activities with their details,
@@ -299,28 +273,31 @@ def get_activities(
         GET /activities?lang=en
         GET /activities?lang=hu
     """
-    return get_activities_by_language(lang)
+    return service.get_all_activities(lang)
 
 
-@app.post("/activities/{activity_name}/signup")
+@app.post("/activities/{activity_name}/signup", response_model=MessageResponse)
 def signup_for_activity(
     activity_name: str,
     request: SignupRequest,
-    lang: str = Query(DEFAULT_LANGUAGE, pattern=f"^({SupportedLanguage.ENGLISH.value}|{SupportedLanguage.HUNGARIAN.value})$")
-) -> Dict[str, str]:
+    lang: str = Query(DEFAULT_LANGUAGE, pattern=f"^({SupportedLanguage.ENGLISH.value}|{SupportedLanguage.HUNGARIAN.value})$"),
+    service: ActivityService = Depends(get_activity_service)
+) -> MessageResponse:
     """Sign up a student for an extracurricular activity.
     
     Args:
         activity_name (str): The name of the activity to sign up for (in the specified language).
         request (SignupRequest): Request body containing the student's email address.
         lang (str): Language code for response messages ("en" or "hu").
+        service: Injected activity service
     
     Returns:
-        Dict[str, str]: A success message confirming the signup in the specified language.
+        MessageResponse: A success message confirming the signup in the specified language.
     
     Raises:
         HTTPException: 404 if the activity does not exist.
         HTTPException: 400 if the student is already signed up for the activity.
+        HTTPException: 400 if the activity is at capacity.
         HTTPException: 422 if the email format is invalid.
     
     Example:
@@ -330,54 +307,35 @@ def signup_for_activity(
         POST /activities/Sakk%20Klub/signup?lang=hu
         Body: {"email": "student@mergington.edu"}
     """
-    email = request.email
-    
-    # Validate and translate activity name to English
-    en_activity_name = validate_and_translate_activity_name(
-        activity_name, lang, activity_name_mapping_reverse, activities_en
-    )
-    
-    # Validate activity exists in participant storage
-    if en_activity_name not in participants_storage:
-        raise HTTPException(status_code=HTTP_NOT_FOUND, detail=MSG_ACTIVITY_NOT_FOUND)
-    
-    # Get activity details
-    activities_dict = get_activities_by_language(SupportedLanguage.ENGLISH.value)
-    if en_activity_name not in activities_dict:
-        raise HTTPException(status_code=HTTP_NOT_FOUND, detail=MSG_ACTIVITY_NOT_FOUND)
-    
-    activity = activities_dict[en_activity_name]
-    
-    # Validate student is not already signed up
-    validate_student_not_registered(email, en_activity_name, participants_storage)
-
-    # Validate activity has not reached maximum capacity
-    validate_capacity_available(
-        en_activity_name, activity, participants_storage, messages[lang]["activity_full"]
-    )
-    
-    # Add student to the activity's participant list
-    participants_storage[en_activity_name].append(email)
-    
-    # Return localized message
-    return {"message": messages[lang]["signed_up"].format(email=email, activity=activity_name)}
+    try:
+        service.signup_student(activity_name, request.email, lang)
+        message = messages[lang]["signed_up"].format(email=request.email, activity=activity_name)
+        return MessageResponse(message=message)
+    except ActivityNotFoundError:
+        raise HTTPException(status_code=HTTP_NOT_FOUND, detail="Activity not found")
+    except StudentAlreadyRegisteredError:
+        raise HTTPException(status_code=HTTP_BAD_REQUEST, detail="Student already signed up for this activity")
+    except ActivityCapacityError:
+        raise HTTPException(status_code=HTTP_BAD_REQUEST, detail=messages[lang]["activity_full"])
 
 
-@app.delete("/activities/{activity_name}/unregister")
+@app.delete("/activities/{activity_name}/unregister", response_model=MessageResponse)
 def unregister_from_activity(
     activity_name: str,
     request: UnregisterRequest,
-    lang: str = Query(DEFAULT_LANGUAGE, pattern=f"^({SupportedLanguage.ENGLISH.value}|{SupportedLanguage.HUNGARIAN.value})$")
-) -> Dict[str, str]:
+    lang: str = Query(DEFAULT_LANGUAGE, pattern=f"^({SupportedLanguage.ENGLISH.value}|{SupportedLanguage.HUNGARIAN.value})$"),
+    service: ActivityService = Depends(get_activity_service)
+) -> MessageResponse:
     """Unregister a student from an extracurricular activity.
     
     Args:
         activity_name (str): The name of the activity to unregister from (in the specified language).
         request (UnregisterRequest): Request body containing the student's email address.
         lang (str): Language code for response messages ("en" or "hu").
+        service: Injected activity service
     
     Returns:
-        Dict[str, str]: A success message confirming the unregistration in the specified language.
+        MessageResponse: A success message confirming the unregistration in the specified language.
     
     Raises:
         HTTPException: 404 if the activity does not exist.
@@ -391,22 +349,11 @@ def unregister_from_activity(
         DELETE /activities/Sakk%20Klub/unregister?lang=hu
         Body: {"email": "student@mergington.edu"}
     """
-    email = request.email
-    
-    # Validate and translate activity name to English
-    en_activity_name = validate_and_translate_activity_name(
-        activity_name, lang, activity_name_mapping_reverse, activities_en
-    )
-    
-    # Validate activity exists
-    if en_activity_name not in participants_storage:
-        raise HTTPException(status_code=HTTP_NOT_FOUND, detail=MSG_ACTIVITY_NOT_FOUND)
-
-    # Validate student is signed up for the activity
-    validate_student_registered(email, en_activity_name, participants_storage)
-
-    # Remove student from the activity's participant list
-    participants_storage[en_activity_name].remove(email)
-    
-    # Return localized message
-    return {"message": messages[lang]["unregistered"].format(email=email, activity=activity_name)}
+    try:
+        service.unregister_student(activity_name, request.email, lang)
+        message = messages[lang]["unregistered"].format(email=request.email, activity=activity_name)
+        return MessageResponse(message=message)
+    except ActivityNotFoundError:
+        raise HTTPException(status_code=HTTP_NOT_FOUND, detail="Activity not found")
+    except StudentNotRegisteredError:
+        raise HTTPException(status_code=HTTP_BAD_REQUEST, detail="Student is not signed up for this activity")
