@@ -145,6 +145,89 @@ class TestSignupForActivity:
         assert "student1@mergington.edu" in participants
         assert "student2@mergington.edu" in participants
 
+    def test_signup_rejected_when_activity_at_capacity(self, client):
+        """Test that signup is rejected when activity has reached max_participants"""
+        # Chess Club has max_participants=12 and starts with 2 participants
+        # Add 10 more students to fill it to capacity
+        for i in range(10):
+            response = client.post(
+                f"/activities/Chess Club/signup?email=student{i}@mergington.edu"
+            )
+            assert response.status_code == 200
+        
+        # Verify activity is now at capacity (12 participants)
+        activities_response = client.get("/activities")
+        activities_data = activities_response.json()
+        assert len(activities_data["Chess Club"]["participants"]) == 12
+        
+        # Try to add one more student - should fail
+        response = client.post(
+            "/activities/Chess Club/signup?email=overflow@mergington.edu"
+        )
+        assert response.status_code == 400
+        data = response.json()
+        assert data["detail"] == "Activity is full"
+        
+        # Verify student was not added
+        activities_response = client.get("/activities")
+        activities_data = activities_response.json()
+        assert "overflow@mergington.edu" not in activities_data["Chess Club"]["participants"]
+        assert len(activities_data["Chess Club"]["participants"]) == 12
+
+    def test_signup_allowed_when_one_below_capacity(self, client):
+        """Test that signup is allowed when activity is one below capacity"""
+        # Chess Club has max_participants=12 and starts with 2 participants
+        # Add 9 students (total 11, one below capacity)
+        for i in range(9):
+            response = client.post(
+                f"/activities/Chess Club/signup?email=student{i}@mergington.edu"
+            )
+            assert response.status_code == 200
+        
+        # Verify activity is one below capacity (11 participants)
+        activities_response = client.get("/activities")
+        activities_data = activities_response.json()
+        assert len(activities_data["Chess Club"]["participants"]) == 11
+        
+        # Add the last student - should succeed
+        response = client.post(
+            "/activities/Chess Club/signup?email=laststudent@mergington.edu"
+        )
+        assert response.status_code == 200
+        
+        # Verify student was added and activity is now at capacity
+        activities_response = client.get("/activities")
+        activities_data = activities_response.json()
+        assert "laststudent@mergington.edu" in activities_data["Chess Club"]["participants"]
+        assert len(activities_data["Chess Club"]["participants"]) == 12
+
+    def test_capacity_check_with_sequential_signups(self, client):
+        """Test that capacity checking works correctly with multiple sequential signups"""
+        # Use Programming Class which has max_participants=20 and starts with 2 participants
+        initial_count = 2
+        max_participants = 20
+        slots_available = max_participants - initial_count
+        
+        # Fill all available slots
+        for i in range(slots_available):
+            response = client.post(
+                f"/activities/Programming Class/signup?email=programmer{i}@mergington.edu"
+            )
+            assert response.status_code == 200
+        
+        # Verify activity is at capacity
+        activities_response = client.get("/activities")
+        activities_data = activities_response.json()
+        assert len(activities_data["Programming Class"]["participants"]) == max_participants
+        
+        # Try to add more students - all should fail
+        for i in range(3):
+            response = client.post(
+                f"/activities/Programming Class/signup?email=extra{i}@mergington.edu"
+            )
+            assert response.status_code == 400
+            assert response.json()["detail"] == "Activity is full"
+
 
 class TestUnregisterFromActivity:
     """Tests for DELETE /activities/{activity_name}/unregister endpoint"""
