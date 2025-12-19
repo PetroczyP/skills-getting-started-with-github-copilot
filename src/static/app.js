@@ -1,17 +1,136 @@
+// Translation dictionaries
+const translations = {
+  en: {
+    "school-name": "Mergington High School",
+    "page-title": "Extracurricular Activities",
+    "available-activities": "Available Activities",
+    "signup-title": "Sign Up for an Activity",
+    "email-label": "Student Email:",
+    "email-placeholder": "your-email@mergington.edu",
+    "activity-label": "Select Activity:",
+    "select-activity": "-- Select an activity --",
+    "signup-button": "Sign Up",
+    "loading": "Loading activities...",
+    "footer-text": "© 2023 Mergington High School",
+    "schedule": "Schedule:",
+    "availability": "Availability:",
+    "spots-left": "spots left",
+    "current-participants": "Current Participants:",
+    "no-participants": "No participants yet. Be the first to sign up!",
+    "delete-button": "Delete",
+    "confirm-unregister": "Are you sure you want to unregister {email} from {activity}?",
+    "error-load-activities": "Failed to load activities. Please try again later.",
+    "error-generic": "An error occurred",
+    "error-signup": "Failed to sign up. Please try again.",
+    "error-unregister-participant": "Failed to unregister participant",
+    "error-unregister": "Failed to unregister. Please try again."
+  },
+  hu: {
+    "school-name": "Mergington Középiskola",
+    "page-title": "Tanórán Kívüli Tevékenységek",
+    "available-activities": "Elérhető Tevékenységek",
+    "signup-title": "Jelentkezés Tevékenységre",
+    "email-label": "Diák Email címe:",
+    "email-placeholder": "email-cimed@mergington.edu",
+    "activity-label": "Válassz Tevékenységet:",
+    "select-activity": "-- Válassz egy tevékenységet --",
+    "signup-button": "Jelentkezés",
+    "loading": "Tevékenységek betöltése...",
+    "footer-text": "© 2023 Mergington Középiskola",
+    "schedule": "Időpont:",
+    "availability": "Elérhetőség:",
+    "spots-left": "hely maradt",
+    "current-participants": "Jelenlegi Résztvevők:",
+    "no-participants": "Még nincsenek résztvevők. Légy te az első!",
+    "delete-button": "Törlés",
+    "confirm-unregister": "Biztosan ki szeretnéd jelenteni {email}-t a(z) {activity} tevékenységből?",
+    "error-load-activities": "Nem sikerült betölteni a tevékenységeket. Kérlek próbáld újra később.",
+    "error-generic": "Hiba történt",
+    "error-signup": "Nem sikerült a jelentkezés. Kérlek próbáld újra.",
+    "error-unregister-participant": "Nem sikerült kijelentkeztetni a résztvevőt",
+    "error-unregister": "Nem sikerült a kijelentkezés. Kérlek próbáld újra."
+  }
+};
+
+// Current language
+let currentLang = localStorage.getItem("lang") || "en";
+
+// Function to translate text on the page
+function translatePage(lang) {
+  currentLang = lang;
+  localStorage.setItem("lang", lang);
+  document.documentElement.lang = lang;
+
+  // Translate all elements with data-i18n attribute
+  document.querySelectorAll("[data-i18n]").forEach(element => {
+    const key = element.getAttribute("data-i18n");
+    if (translations[lang] && translations[lang][key]) {
+      if (element.tagName === "INPUT" && element.type === "submit") {
+        element.value = translations[lang][key];
+      } else {
+        element.textContent = translations[lang][key];
+      }
+    }
+  });
+
+  // Translate placeholder attributes
+  document.querySelectorAll("[data-i18n-placeholder]").forEach(element => {
+    const key = element.getAttribute("data-i18n-placeholder");
+    if (translations[lang] && translations[lang][key]) {
+      element.placeholder = translations[lang][key];
+    }
+  });
+
+  // Update flag button active state
+  document.querySelectorAll(".flag-btn").forEach(btn => {
+    if (btn.dataset.lang === lang) {
+      btn.classList.add("active");
+    } else {
+      btn.classList.remove("active");
+    }
+  });
+}
+
+// Function to get translated text
+function t(key, replacements = {}) {
+  let text = translations[currentLang][key] || key;
+  Object.keys(replacements).forEach(replaceKey => {
+    text = text.replace(`{${replaceKey}}`, replacements[replaceKey]);
+  });
+  return text;
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   const activitiesList = document.getElementById("activities-list");
   const activitySelect = document.getElementById("activity");
   const signupForm = document.getElementById("signup-form");
   const messageDiv = document.getElementById("message");
 
+  // Initialize language on page load
+  translatePage(currentLang);
+
+  // Handle language switcher clicks
+  document.querySelectorAll(".flag-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const selectedLang = btn.dataset.lang;
+      // Skip if same language is already selected
+      if (selectedLang === currentLang) {
+        return;
+      }
+      translatePage(selectedLang);
+      fetchActivities();
+    });
+  });
+
   // Function to fetch activities from API
   async function fetchActivities() {
     try {
-      const response = await fetch("/activities");
+      const response = await fetch(`/activities?lang=${currentLang}`);
       const activities = await response.json();
 
-      // Clear loading message
-      activitiesList.textContent = "";
+      // Clear loading message and select options
+      activitiesList.innerHTML = "";
+      activitySelect.innerHTML = `<option value="" data-i18n="select-activity">${t("select-activity")}</option>`;
 
       // Populate activities list
       Object.entries(activities).forEach(([name, details]) => {
@@ -20,75 +139,28 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const spotsLeft = details.max_participants - details.participants.length;
 
-        // Create title
-        const title = document.createElement("h4");
-        title.textContent = name;
-        activityCard.appendChild(title);
+        const participantsList = details.participants.length > 0
+          ? `<ul class="participants-list" data-activity="${name}">
+              ${details.participants.map(email => `
+                <li>
+                  <span>${email}</span>
+                  <button class="delete-btn" data-email="${email}" data-activity="${name}" aria-label="Remove ${email} from ${name}">${t("delete-button")}</button>
+                </li>
+              `).join('')}
+             </ul>`
+          : `<p class="no-participants">${t("no-participants")}</p>`;
 
-        // Create description
-        const description = document.createElement("p");
-        description.textContent = details.description;
-        activityCard.appendChild(description);
+        activityCard.innerHTML = `
+          <h4>${name}</h4>
+          <p>${details.description}</p>
+          <p><strong>${t("schedule")}</strong> ${details.schedule}</p>
+          <p><strong>${t("availability")}</strong> ${spotsLeft} ${t("spots-left")}</p>
+          <div class="participants-section">
+            <p class="participants-header"><strong>${t("current-participants")}</strong></p>
+            ${participantsList}
+          </div>
+        `;
 
-        // Create schedule
-        const schedule = document.createElement("p");
-        const scheduleLabel = document.createElement("strong");
-        scheduleLabel.textContent = "Schedule:";
-        schedule.appendChild(scheduleLabel);
-        schedule.appendChild(document.createTextNode(` ${details.schedule}`));
-        activityCard.appendChild(schedule);
-
-        // Create availability
-        const availability = document.createElement("p");
-        const availabilityLabel = document.createElement("strong");
-        availabilityLabel.textContent = "Availability:";
-        availability.appendChild(availabilityLabel);
-        availability.appendChild(document.createTextNode(` ${spotsLeft} spots left`));
-        activityCard.appendChild(availability);
-
-        // Create participants section
-        const participantsSection = document.createElement("div");
-        participantsSection.className = "participants-section";
-
-        const participantsHeader = document.createElement("p");
-        participantsHeader.className = "participants-header";
-        const participantsHeaderLabel = document.createElement("strong");
-        participantsHeaderLabel.textContent = "Current Participants:";
-        participantsHeader.appendChild(participantsHeaderLabel);
-        participantsSection.appendChild(participantsHeader);
-
-        // Create participants list or no participants message
-        if (details.participants.length > 0) {
-          const participantsList = document.createElement("ul");
-          participantsList.className = "participants-list";
-          participantsList.dataset.activity = name;
-
-          details.participants.forEach(email => {
-            const listItem = document.createElement("li");
-            
-            const emailSpan = document.createElement("span");
-            emailSpan.textContent = email;
-            listItem.appendChild(emailSpan);
-
-            const deleteBtn = document.createElement("button");
-            deleteBtn.className = "delete-btn";
-            deleteBtn.textContent = "Delete";
-            deleteBtn.dataset.email = email;
-            deleteBtn.dataset.activity = name;
-            listItem.appendChild(deleteBtn);
-
-            participantsList.appendChild(listItem);
-          });
-
-          participantsSection.appendChild(participantsList);
-        } else {
-          const noParticipants = document.createElement("p");
-          noParticipants.className = "no-participants";
-          noParticipants.textContent = "No participants yet. Be the first to sign up!";
-          participantsSection.appendChild(noParticipants);
-        }
-
-        activityCard.appendChild(participantsSection);
         activitiesList.appendChild(activityCard);
 
         // Add option to select dropdown
@@ -98,10 +170,7 @@ document.addEventListener("DOMContentLoaded", () => {
         activitySelect.appendChild(option);
       });
     } catch (error) {
-      activitiesList.textContent = "";
-      const errorMessage = document.createElement("p");
-      errorMessage.textContent = "Failed to load activities. Please try again later.";
-      activitiesList.appendChild(errorMessage);
+      activitiesList.innerHTML = `<p>${t("error-load-activities")}</p>`;
       console.error("Error fetching activities:", error);
     }
   }
@@ -115,13 +184,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
     try {
       const response = await fetch(
-        `/activities/${encodeURIComponent(activity)}/signup`,
+        `/activities/${encodeURIComponent(activity)}/signup?lang=${currentLang}`,
         {
           method: "POST",
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
-          body: JSON.stringify({ email: email }),
+          body: JSON.stringify({ email: email })
         }
       );
 
@@ -131,8 +200,10 @@ document.addEventListener("DOMContentLoaded", () => {
         messageDiv.textContent = result.message;
         messageDiv.className = "success";
         signupForm.reset();
+        // Refresh activities list
+        await fetchActivities();
       } else {
-        messageDiv.textContent = result.detail || "An error occurred";
+        messageDiv.textContent = result.detail || t("error-generic");
         messageDiv.className = "error";
       }
 
@@ -143,7 +214,7 @@ document.addEventListener("DOMContentLoaded", () => {
         messageDiv.classList.add("hidden");
       }, 5000);
     } catch (error) {
-      messageDiv.textContent = "Failed to sign up. Please try again.";
+      messageDiv.textContent = t("error-signup");
       messageDiv.className = "error";
       messageDiv.classList.remove("hidden");
       console.error("Error signing up:", error);
@@ -156,19 +227,19 @@ document.addEventListener("DOMContentLoaded", () => {
       const email = event.target.dataset.email;
       const activity = event.target.dataset.activity;
 
-      if (!confirm(`Are you sure you want to unregister ${email} from ${activity}?`)) {
+      if (!confirm(t("confirm-unregister", { email, activity }))) {
         return;
       }
 
       try {
         const response = await fetch(
-          `/activities/${encodeURIComponent(activity)}/unregister`,
+          `/activities/${encodeURIComponent(activity)}/unregister?lang=${currentLang}`,
           {
             method: 'DELETE',
             headers: {
               'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ email: email }),
+            body: JSON.stringify({ email: email })
           }
         );
 
@@ -187,12 +258,12 @@ document.addEventListener("DOMContentLoaded", () => {
             messageDiv.classList.add('hidden');
           }, 5000);
         } else {
-          messageDiv.textContent = result.detail || 'Failed to unregister participant';
+          messageDiv.textContent = result.detail || t("error-unregister-participant");
           messageDiv.className = 'error';
           messageDiv.classList.remove('hidden');
         }
       } catch (error) {
-        messageDiv.textContent = 'Failed to unregister. Please try again.';
+        messageDiv.textContent = t("error-unregister");
         messageDiv.className = 'error';
         messageDiv.classList.remove('hidden');
         console.error('Error unregistering:', error);

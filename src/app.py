@@ -15,7 +15,7 @@ from typing import Dict, List, Any
 import os
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, EmailStr
@@ -52,65 +52,195 @@ app.mount(
     name="static"
 )
 
-# In-memory activity database
-# Structure: Dict[activity_name, Dict[str, Any]]
-# Each activity contains: description, schedule, max_participants, and participants list
-activities: Dict[str, Dict[str, Any]] = {
+# Translation dictionaries for activities
+# English activities data
+activities_en: Dict[str, Dict[str, Any]] = {
     "Chess Club": {
         "description": "Learn strategies and compete in chess tournaments",
         "schedule": "Fridays, 3:30 PM - 5:00 PM",
         "max_participants": 12,
-        "participants": ["michael@mergington.edu", "daniel@mergington.edu"]
+        "participants": []
     },
     "Programming Class": {
         "description": "Learn programming fundamentals and build software projects",
         "schedule": "Tuesdays and Thursdays, 3:30 PM - 4:30 PM",
         "max_participants": 20,
-        "participants": ["emma@mergington.edu", "sophia@mergington.edu"]
+        "participants": []
     },
     "Gym Class": {
         "description": "Physical education and sports activities",
         "schedule": "Mondays, Wednesdays, Fridays, 2:00 PM - 3:00 PM",
         "max_participants": 30,
-        "participants": ["john@mergington.edu", "olivia@mergington.edu"]
+        "participants": []
     },
     "Soccer Team": {
         "description": "Join the varsity soccer team for practices and competitive matches",
         "schedule": "Mondays and Wednesdays, 4:00 PM - 6:00 PM",
         "max_participants": 22,
-        "participants": ["alex@mergington.edu", "sarah@mergington.edu"]
+        "participants": []
     },
     "Swimming Club": {
         "description": "Swimming lessons and training for all skill levels",
         "schedule": "Tuesdays and Thursdays, 4:00 PM - 5:30 PM",
         "max_participants": 15,
-        "participants": ["ryan@mergington.edu"]
+        "participants": []
     },
     "Drama Club": {
         "description": "Perform in plays and learn acting techniques",
         "schedule": "Wednesdays, 3:30 PM - 5:30 PM",
         "max_participants": 25,
-        "participants": ["lily@mergington.edu", "james@mergington.edu"]
+        "participants": []
     },
     "Art Studio": {
         "description": "Explore painting, drawing, and sculpture",
         "schedule": "Thursdays, 3:30 PM - 5:00 PM",
         "max_participants": 18,
-        "participants": ["ava@mergington.edu"]
+        "participants": []
     },
     "Debate Team": {
         "description": "Develop critical thinking and public speaking skills through competitive debates",
         "schedule": "Tuesdays, 4:00 PM - 5:30 PM",
         "max_participants": 16,
-        "participants": ["noah@mergington.edu", "mia@mergington.edu"]
+        "participants": []
     },
     "Science Olympiad": {
         "description": "Compete in science competitions and conduct experiments",
         "schedule": "Fridays, 3:00 PM - 5:00 PM",
         "max_participants": 20,
-        "participants": ["ethan@mergington.edu", "isabella@mergington.edu"]
+        "participants": []
     }
 }
+
+# Hungarian activities data
+activities_hu: Dict[str, Dict[str, Any]] = {
+    "Sakk Klub": {
+        "description": "Tanulj stratégiákat és versenyezz sakk tornákon",
+        "schedule": "Péntek, 15:30 - 17:00",
+        "max_participants": 12,
+        "participants": []
+    },
+    "Programozás Tanfolyam": {
+        "description": "Tanuld meg a programozás alapjait és készíts szoftverprojekteket",
+        "schedule": "Kedd és Csütörtök, 15:30 - 16:30",
+        "max_participants": 20,
+        "participants": []
+    },
+    "Tornaterem": {
+        "description": "Testnevelés és sportolási lehetőségek",
+        "schedule": "Hétfő, Szerda, Péntek, 14:00 - 15:00",
+        "max_participants": 30,
+        "participants": []
+    },
+    "Focicsapat": {
+        "description": "Csatlakozz az iskolai foci csapathoz edzésekre és versenyekre",
+        "schedule": "Hétfő és Szerda, 16:00 - 18:00",
+        "max_participants": 22,
+        "participants": []
+    },
+    "Úszó Klub": {
+        "description": "Úszásoktatás és edzés minden szinten",
+        "schedule": "Kedd és Csütörtök, 16:00 - 17:30",
+        "max_participants": 15,
+        "participants": []
+    },
+    "Drámakör": {
+        "description": "Szerepelj színdarabokban és tanulj színészeti technikákat",
+        "schedule": "Szerda, 15:30 - 17:30",
+        "max_participants": 25,
+        "participants": []
+    },
+    "Művészeti Stúdió": {
+        "description": "Fedezd fel a festést, rajzolást és szobrászatot",
+        "schedule": "Csütörtök, 15:30 - 17:00",
+        "max_participants": 18,
+        "participants": []
+    },
+    "Vitakör": {
+        "description": "Fejleszd kritikus gondolkodásodat és nyilvános beszédkészségedet versenyszerű vitákon keresztül",
+        "schedule": "Kedd, 16:00 - 17:30",
+        "max_participants": 16,
+        "participants": []
+    },
+    "Tudományos Olimpia": {
+        "description": "Versenyezz tudományos versenyek és kísérletek során",
+        "schedule": "Péntek, 15:00 - 17:00",
+        "max_participants": 20,
+        "participants": []
+    }
+}
+
+# Activity name mappings (English -> Hungarian)
+activity_name_mapping = {
+    "Chess Club": "Sakk Klub",
+    "Programming Class": "Programozás Tanfolyam",
+    "Gym Class": "Tornaterem",
+    "Soccer Team": "Focicsapat",
+    "Swimming Club": "Úszó Klub",
+    "Drama Club": "Drámakör",
+    "Art Studio": "Művészeti Stúdió",
+    "Debate Team": "Vitakör",
+    "Science Olympiad": "Tudományos Olimpia"
+}
+
+# Reverse mapping (Hungarian -> English)
+activity_name_mapping_reverse = {v: k for k, v in activity_name_mapping.items()}
+
+# User-facing message translations
+messages = {
+    "en": {
+        "signed_up": "Signed up {email} for {activity}",
+        "unregistered": "Unregistered {email} from {activity}",
+        "activity_full": "Activity is full"
+    },
+    "hu": {
+        "signed_up": "{email} sikeresen jelentkezett: {activity}",
+        "unregistered": "{email} sikeresen kijelentkezve: {activity}",
+        "activity_full": "A tevékenység megtelt"
+    }
+}
+
+# Shared participants list across languages
+# This ensures participants are synced between English and Hungarian versions
+participants_storage: Dict[str, List[str]] = {
+    "Chess Club": ["michael@mergington.edu", "daniel@mergington.edu"],
+    "Programming Class": ["emma@mergington.edu", "sophia@mergington.edu"],
+    "Gym Class": ["john@mergington.edu", "olivia@mergington.edu"],
+    "Soccer Team": ["alex@mergington.edu", "sarah@mergington.edu"],
+    "Swimming Club": ["ryan@mergington.edu"],
+    "Drama Club": ["lily@mergington.edu", "james@mergington.edu"],
+    "Art Studio": ["ava@mergington.edu"],
+    "Debate Team": ["noah@mergington.edu", "mia@mergington.edu"],
+    "Science Olympiad": ["ethan@mergington.edu", "isabella@mergington.edu"]
+}
+
+
+def get_activities_by_language(lang: str = "en") -> Dict[str, Dict[str, Any]]:
+    """Get activities with participants in the specified language.
+    
+    Args:
+        lang: Language code ("en" or "hu")
+        
+    Returns:
+        Dictionary of activities with current participants
+    """
+    # Select the appropriate activities dictionary
+    if lang == "hu":
+        activities_dict = activities_hu.copy()
+    else:
+        activities_dict = activities_en.copy()
+    
+    # Get English activity keys for participant lookup
+    if lang == "hu":
+        # For Hungarian, we need to map back to English keys
+        for hu_name, activity_data in activities_dict.items():
+            en_name = activity_name_mapping_reverse.get(hu_name, hu_name)
+            activity_data["participants"] = participants_storage.get(en_name, [])
+    else:
+        # For English, direct mapping
+        for en_name, activity_data in activities_dict.items():
+            activity_data["participants"] = participants_storage.get(en_name, [])
+    
+    return activities_dict
 
 
 @app.get("/")
@@ -124,37 +254,38 @@ def root() -> RedirectResponse:
 
 
 @app.get("/activities")
-def get_activities() -> Dict[str, Dict[str, Any]]:
-    """Retrieve all available extracurricular activities.
+def get_activities(lang: str = Query("en", pattern="^(en|hu)$")) -> Dict[str, Dict[str, Any]]:
+    """Retrieve all available extracurricular activities in the specified language.
+    
+    Args:
+        lang: Language code - "en" for English or "hu" for Hungarian (default: "en")
     
     Returns:
         Dict[str, Dict[str, Any]]: A dictionary of all activities with their details,
             including description, schedule, max_participants, and current participants.
     
     Example:
-        {
-            "Chess Club": {
-                "description": "Learn strategies and compete in chess tournaments",
-                "schedule": "Fridays, 3:30 PM - 5:00 PM",
-                "max_participants": 12,
-                "participants": ["michael@mergington.edu", "daniel@mergington.edu"]
-            },
-            ...
-        }
+        GET /activities?lang=en
+        GET /activities?lang=hu
     """
-    return activities
+    return get_activities_by_language(lang)
 
 
 @app.post("/activities/{activity_name}/signup")
-def signup_for_activity(activity_name: str, request: SignupRequest) -> Dict[str, str]:
+def signup_for_activity(
+    activity_name: str,
+    request: SignupRequest,
+    lang: str = Query("en", pattern="^(en|hu)$")
+) -> Dict[str, str]:
     """Sign up a student for an extracurricular activity.
     
     Args:
-        activity_name (str): The name of the activity to sign up for.
+        activity_name (str): The name of the activity to sign up for (in the specified language).
         request (SignupRequest): Request body containing the student's email address.
+        lang (str): Language code for response messages ("en" or "hu").
     
     Returns:
-        Dict[str, str]: A success message confirming the signup.
+        Dict[str, str]: A success message confirming the signup in the specified language.
     
     Raises:
         HTTPException: 404 if the activity does not exist.
@@ -162,47 +293,70 @@ def signup_for_activity(activity_name: str, request: SignupRequest) -> Dict[str,
         HTTPException: 422 if the email format is invalid.
     
     Example:
-        POST /activities/Chess%20Club/signup
+        POST /activities/Chess%20Club/signup?lang=en
         Body: {"email": "student@mergington.edu"}
-        Response: {"message": "Signed up student@mergington.edu for Chess Club"}
+        
+        POST /activities/Sakk%20Klub/signup?lang=hu
+        Body: {"email": "student@mergington.edu"}
     """
-    # Validate activity exists
-    if activity_name not in activities:
+    email = request.email
+    
+    # Convert Hungarian activity name to English for internal storage
+    en_activity_name = activity_name
+    if lang == "hu" and activity_name in activity_name_mapping_reverse:
+        en_activity_name = activity_name_mapping_reverse[activity_name]
+    elif lang == "en" and activity_name not in activity_name_mapping:
+        # Check if it's a valid English activity name
+        if activity_name not in activities_en:
+            raise HTTPException(status_code=404, detail="Activity not found")
+    
+    # Validate activity exists in English database
+    if en_activity_name not in participants_storage:
         raise HTTPException(status_code=404, detail="Activity not found")
-
-    # Get the specific activity
-    activity = activities[activity_name]
-
+    
+    # Get activity details
+    activities_dict = get_activities_by_language("en")
+    if en_activity_name not in activities_dict:
+        raise HTTPException(status_code=404, detail="Activity not found")
+    
+    activity = activities_dict[en_activity_name]
+    
     # Validate student is not already signed up
-    if request.email in activity["participants"]:
+    if email in participants_storage[en_activity_name]:
         raise HTTPException(
             status_code=400,
             detail="Student already signed up for this activity"
         )
 
     # Validate activity has not reached maximum capacity
-    if len(activity["participants"]) >= activity["max_participants"]:
+    if len(participants_storage[en_activity_name]) >= activity["max_participants"]:
         raise HTTPException(
             status_code=400,
-            detail="Activity is full"
+            detail=messages[lang]["activity_full"]
         )
+    
     # Add student to the activity's participant list
-    activity["participants"].append(request.email)
-    return {"message": f"Signed up {request.email} for {activity_name}"}
+    participants_storage[en_activity_name].append(email)
+    
+    # Return localized message
+    return {"message": messages[lang]["signed_up"].format(email=email, activity=activity_name)}
 
 
 @app.delete("/activities/{activity_name}/unregister")
 def unregister_from_activity(
-    activity_name: str, request: UnregisterRequest
+    activity_name: str,
+    request: UnregisterRequest,
+    lang: str = Query("en", pattern="^(en|hu)$")
 ) -> Dict[str, str]:
     """Unregister a student from an extracurricular activity.
     
     Args:
-        activity_name (str): The name of the activity to unregister from.
+        activity_name (str): The name of the activity to unregister from (in the specified language).
         request (UnregisterRequest): Request body containing the student's email address.
+        lang (str): Language code for response messages ("en" or "hu").
     
     Returns:
-        Dict[str, str]: A success message confirming the unregistration.
+        Dict[str, str]: A success message confirming the unregistration in the specified language.
     
     Raises:
         HTTPException: 404 if the activity does not exist.
@@ -210,24 +364,36 @@ def unregister_from_activity(
         HTTPException: 422 if the email format is invalid.
     
     Example:
-        DELETE /activities/Chess%20Club/unregister
+        DELETE /activities/Chess%20Club/unregister?lang=en
         Body: {"email": "student@mergington.edu"}
-        Response: {"message": "Unregistered student@mergington.edu from Chess Club"}
+        
+        DELETE /activities/Sakk%20Klub/unregister?lang=hu
+        Body: {"email": "student@mergington.edu"}
     """
+    email = request.email
+    
+    # Convert Hungarian activity name to English for internal storage
+    en_activity_name = activity_name
+    if lang == "hu" and activity_name in activity_name_mapping_reverse:
+        en_activity_name = activity_name_mapping_reverse[activity_name]
+    elif lang == "en" and activity_name not in activity_name_mapping:
+        # Check if it's a valid English activity name
+        if activity_name not in activities_en:
+            raise HTTPException(status_code=404, detail="Activity not found")
+    
     # Validate activity exists
-    if activity_name not in activities:
+    if en_activity_name not in participants_storage:
         raise HTTPException(status_code=404, detail="Activity not found")
 
-    # Get the specific activity
-    activity = activities[activity_name]
-
     # Validate student is signed up for the activity
-    if request.email not in activity["participants"]:
+    if email not in participants_storage[en_activity_name]:
         raise HTTPException(
             status_code=400,
             detail="Student is not signed up for this activity"
         )
 
     # Remove student from the activity's participant list
-    activity["participants"].remove(request.email)
-    return {"message": f"Unregistered {request.email} from {activity_name}"}
+    participants_storage[en_activity_name].remove(email)
+    
+    # Return localized message
+    return {"message": messages[lang]["unregistered"].format(email=email, activity=activity_name)}

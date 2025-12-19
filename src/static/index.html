@@ -8,41 +8,49 @@
   </head>
   <body>
     <header>
-      <h1>Mergington High School</h1>
-      <h2>Extracurricular Activities</h2>
+      <div class="header-content">
+        <div class="header-text">
+          <h1 data-i18n="school-name">Mergington High School</h1>
+          <h2 data-i18n="page-title">Extracurricular Activities</h2>
+        </div>
+        <div class="language-switcher">
+          <button class="flag-btn" data-lang="en" aria-label="Switch to English">🇬🇧</button>
+          <button class="flag-btn" data-lang="hu" aria-label="Switch to Hungarian">🇭🇺</button>
+        </div>
+      </div>
     </header>
 
     <main>
       <section id="activities-container">
-        <h3>Available Activities</h3>
+        <h3 data-i18n="available-activities">Available Activities</h3>
         <div id="activities-list">
           <!-- Activities will be loaded here -->
-          <p>Loading activities...</p>
+          <p data-i18n="loading">Loading activities...</p>
         </div>
       </section>
 
       <section id="signup-container">
-        <h3>Sign Up for an Activity</h3>
+        <h3 data-i18n="signup-title">Sign Up for an Activity</h3>
         <form id="signup-form">
           <div class="form-group">
-            <label for="email">Student Email:</label>
-            <input type="email" id="email" required placeholder="your-email@mergington.edu" />
+            <label for="email" data-i18n="email-label">Student Email:</label>
+            <input type="email" id="email" required data-i18n-placeholder="email-placeholder" placeholder="your-email@mergington.edu" />
           </div>
           <div class="form-group">
-            <label for="activity">Select Activity:</label>
+            <label for="activity" data-i18n="activity-label">Select Activity:</label>
             <select id="activity" required>
-              <option value="">-- Select an activity --</option>
+              <option value="" data-i18n="select-activity">-- Select an activity --</option>
               <!-- Activity options will be loaded here -->
             </select>
           </div>
-          <button type="submit">Sign Up</button>
+          <button type="submit" data-i18n="signup-button">Sign Up</button>
         </form>
         <div id="message" class="hidden"></div>
       </section>
     </main>
 
     <footer>
-      <p>&copy; 2023 Mergington High School</p>
+      <p data-i18n="footer-text">&copy; 2023 Mergington High School</p>
     </footer>
 
     <script src="app.js"></script>
