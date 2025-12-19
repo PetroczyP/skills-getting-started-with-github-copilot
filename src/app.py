@@ -18,16 +18,25 @@ from pathlib import Path
 from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
+
+
+class SignupRequest(BaseModel):
+    """Request model for signing up for an activity.
+    
+    Attributes:
+        email (EmailStr): The student's email address.
+    """
+    email: EmailStr
 
 
 class UnregisterRequest(BaseModel):
     """Request model for unregistering from an activity.
     
     Attributes:
-        email (str): The student's email address.
+        email (EmailStr): The student's email address.
     """
-    email: str
+    email: EmailStr
 
 
 app = FastAPI(
@@ -137,12 +146,12 @@ def get_activities() -> Dict[str, Dict[str, Any]]:
 
 
 @app.post("/activities/{activity_name}/signup")
-def signup_for_activity(activity_name: str, email: str) -> Dict[str, str]:
+def signup_for_activity(activity_name: str, request: SignupRequest) -> Dict[str, str]:
     """Sign up a student for an extracurricular activity.
     
     Args:
         activity_name (str): The name of the activity to sign up for.
-        email (str): The student's email address (must end with @mergington.edu).
+        request (SignupRequest): Request body containing the student's email address.
     
     Returns:
         Dict[str, str]: A success message confirming the signup.
@@ -150,9 +159,11 @@ def signup_for_activity(activity_name: str, email: str) -> Dict[str, str]:
     Raises:
         HTTPException: 404 if the activity does not exist.
         HTTPException: 400 if the student is already signed up for the activity.
+        HTTPException: 422 if the email format is invalid.
     
     Example:
-        POST /activities/Chess%20Club/signup?email=student@mergington.edu
+        POST /activities/Chess%20Club/signup
+        Body: {"email": "student@mergington.edu"}
         Response: {"message": "Signed up student@mergington.edu for Chess Club"}
     """
     # Validate activity exists
@@ -163,15 +174,15 @@ def signup_for_activity(activity_name: str, email: str) -> Dict[str, str]:
     activity = activities[activity_name]
 
     # Validate student is not already signed up
-    if email in activity["participants"]:
+    if request.email in activity["participants"]:
         raise HTTPException(
             status_code=400,
             detail="Student already signed up for this activity"
         )
 
     # Add student to the activity's participant list
-    activity["participants"].append(email)
-    return {"message": f"Signed up {email} for {activity_name}"}
+    activity["participants"].append(request.email)
+    return {"message": f"Signed up {request.email} for {activity_name}"}
 
 
 @app.delete("/activities/{activity_name}/unregister")
