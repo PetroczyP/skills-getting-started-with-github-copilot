@@ -1,26 +1,41 @@
-"""
-High School Management System API
+"""High School Management System API
 
 A super simple FastAPI application that allows students to view and sign up
 for extracurricular activities at Mergington High School.
+
+This module provides REST API endpoints for:
+    - Viewing available extracurricular activities
+    - Signing up for activities
+    - Unregistering from activities
+
+The application uses an in-memory database for activity storage.
 """
+
+from typing import Dict, List, Any
+import os
+from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse
-import os
-from pathlib import Path
 
-app = FastAPI(title="Mergington High School API",
-              description="API for viewing and signing up for extracurricular activities")
+app = FastAPI(
+    title="Mergington High School API",
+    description="API for viewing and signing up for extracurricular activities"
+)
 
-# Mount the static files directory
+# Mount the static files directory for serving HTML, CSS, and JavaScript files
 current_dir = Path(__file__).parent
-app.mount("/static", StaticFiles(directory=os.path.join(Path(__file__).parent,
-          "static")), name="static")
+app.mount(
+    "/static",
+    StaticFiles(directory=os.path.join(Path(__file__).parent, "static")),
+    name="static"
+)
 
 # In-memory activity database
-activities = {
+# Structure: Dict[activity_name, Dict[str, Any]]
+# Each activity contains: description, schedule, max_participants, and participants list
+activities: Dict[str, Dict[str, Any]] = {
     "Chess Club": {
         "description": "Learn strategies and compete in chess tournaments",
         "schedule": "Fridays, 3:30 PM - 5:00 PM",
@@ -79,18 +94,56 @@ activities = {
 
 
 @app.get("/")
-def root():
+def root() -> RedirectResponse:
+    """Redirect root URL to the static index page.
+    
+    Returns:
+        RedirectResponse: A redirect response to the static index.html page.
+    """
     return RedirectResponse(url="/static/index.html")
 
 
 @app.get("/activities")
-def get_activities():
+def get_activities() -> Dict[str, Dict[str, Any]]:
+    """Retrieve all available extracurricular activities.
+    
+    Returns:
+        Dict[str, Dict[str, Any]]: A dictionary of all activities with their details,
+            including description, schedule, max_participants, and current participants.
+    
+    Example:
+        {
+            "Chess Club": {
+                "description": "Learn strategies and compete in chess tournaments",
+                "schedule": "Fridays, 3:30 PM - 5:00 PM",
+                "max_participants": 12,
+                "participants": ["michael@mergington.edu", "daniel@mergington.edu"]
+            },
+            ...
+        }
+    """
     return activities
 
 
 @app.post("/activities/{activity_name}/signup")
-def signup_for_activity(activity_name: str, email: str):
-    """Sign up a student for an activity"""
+def signup_for_activity(activity_name: str, email: str) -> Dict[str, str]:
+    """Sign up a student for an extracurricular activity.
+    
+    Args:
+        activity_name (str): The name of the activity to sign up for.
+        email (str): The student's email address (must end with @mergington.edu).
+    
+    Returns:
+        Dict[str, str]: A success message confirming the signup.
+    
+    Raises:
+        HTTPException: 404 if the activity does not exist.
+        HTTPException: 400 if the student is already signed up for the activity.
+    
+    Example:
+        POST /activities/Chess%20Club/signup?email=student@mergington.edu
+        Response: {"message": "Signed up student@mergington.edu for Chess Club"}
+    """
     # Validate activity exists
     if activity_name not in activities:
         raise HTTPException(status_code=404, detail="Activity not found")
@@ -100,8 +153,49 @@ def signup_for_activity(activity_name: str, email: str):
 
     # Validate student is not already signed up
     if email in activity["participants"]:
-        raise HTTPException(status_code=400, detail="Student already signed up for this activity")
+        raise HTTPException(
+            status_code=400,
+            detail="Student already signed up for this activity"
+        )
 
-    # Add student
+    # Add student to the activity's participant list
     activity["participants"].append(email)
     return {"message": f"Signed up {email} for {activity_name}"}
+
+
+@app.delete("/activities/{activity_name}/unregister")
+def unregister_from_activity(activity_name: str, email: str) -> Dict[str, str]:
+    """Unregister a student from an extracurricular activity.
+    
+    Args:
+        activity_name (str): The name of the activity to unregister from.
+        email (str): The student's email address.
+    
+    Returns:
+        Dict[str, str]: A success message confirming the unregistration.
+    
+    Raises:
+        HTTPException: 404 if the activity does not exist.
+        HTTPException: 400 if the student is not signed up for the activity.
+    
+    Example:
+        DELETE /activities/Chess%20Club/unregister?email=student@mergington.edu
+        Response: {"message": "Unregistered student@mergington.edu from Chess Club"}
+    """
+    # Validate activity exists
+    if activity_name not in activities:
+        raise HTTPException(status_code=404, detail="Activity not found")
+
+    # Get the specific activity
+    activity = activities[activity_name]
+
+    # Validate student is signed up for the activity
+    if email not in activity["participants"]:
+        raise HTTPException(
+            status_code=400,
+            detail="Student is not signed up for this activity"
+        )
+
+    # Remove student from the activity's participant list
+    activity["participants"].remove(email)
+    return {"message": f"Unregistered {email} from {activity_name}"}
