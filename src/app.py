@@ -28,7 +28,7 @@ app = FastAPI(
 current_dir = Path(__file__).parent
 app.mount(
     "/static",
-    StaticFiles(directory=os.path.join(Path(__file__).parent, "static")),
+    StaticFiles(directory=os.path.join(current_dir, "static")),
     name="static"
 )
 
