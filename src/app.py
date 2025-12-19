@@ -18,6 +18,17 @@ from pathlib import Path
 from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse
+from pydantic import BaseModel
+
+
+class UnregisterRequest(BaseModel):
+    """Request model for unregistering from an activity.
+    
+    Attributes:
+        email (str): The student's email address.
+    """
+    email: str
+
 
 app = FastAPI(
     title="Mergington High School API",
@@ -164,12 +175,14 @@ def signup_for_activity(activity_name: str, email: str) -> Dict[str, str]:
 
 
 @app.delete("/activities/{activity_name}/unregister")
-def unregister_from_activity(activity_name: str, email: str) -> Dict[str, str]:
+def unregister_from_activity(
+    activity_name: str, request: UnregisterRequest
+) -> Dict[str, str]:
     """Unregister a student from an extracurricular activity.
     
     Args:
         activity_name (str): The name of the activity to unregister from.
-        email (str): The student's email address.
+        request (UnregisterRequest): Request body containing the student's email address.
     
     Returns:
         Dict[str, str]: A success message confirming the unregistration.
@@ -179,7 +192,8 @@ def unregister_from_activity(activity_name: str, email: str) -> Dict[str, str]:
         HTTPException: 400 if the student is not signed up for the activity.
     
     Example:
-        DELETE /activities/Chess%20Club/unregister?email=student@mergington.edu
+        DELETE /activities/Chess%20Club/unregister
+        Body: {"email": "student@mergington.edu"}
         Response: {"message": "Unregistered student@mergington.edu from Chess Club"}
     """
     # Validate activity exists
@@ -190,12 +204,12 @@ def unregister_from_activity(activity_name: str, email: str) -> Dict[str, str]:
     activity = activities[activity_name]
 
     # Validate student is signed up for the activity
-    if email not in activity["participants"]:
+    if request.email not in activity["participants"]:
         raise HTTPException(
             status_code=400,
             detail="Student is not signed up for this activity"
         )
 
     # Remove student from the activity's participant list
-    activity["participants"].remove(email)
-    return {"message": f"Unregistered {email} from {activity_name}"}
+    activity["participants"].remove(request.email)
+    return {"message": f"Unregistered {request.email} from {activity_name}"}

@@ -151,8 +151,10 @@ class TestUnregisterFromActivity:
 
     def test_unregister_from_activity(self, client):
         """Test unregistering from an activity"""
-        response = client.delete(
-            "/activities/Chess Club/unregister?email=michael@mergington.edu"
+        response = client.request(
+            "DELETE",
+            "/activities/Chess Club/unregister",
+            json={"email": "michael@mergington.edu"}
         )
         assert response.status_code == 200
         data = response.json()
@@ -165,8 +167,10 @@ class TestUnregisterFromActivity:
 
     def test_unregister_from_nonexistent_activity(self, client):
         """Test unregistering from an activity that doesn't exist"""
-        response = client.delete(
-            "/activities/Nonexistent Club/unregister?email=student@mergington.edu"
+        response = client.request(
+            "DELETE",
+            "/activities/Nonexistent Club/unregister",
+            json={"email": "student@mergington.edu"}
         )
         assert response.status_code == 404
         data = response.json()
@@ -174,8 +178,10 @@ class TestUnregisterFromActivity:
 
     def test_unregister_when_not_registered(self, client):
         """Test unregistering when not registered for the activity"""
-        response = client.delete(
-            "/activities/Chess Club/unregister?email=notregistered@mergington.edu"
+        response = client.request(
+            "DELETE",
+            "/activities/Chess Club/unregister",
+            json={"email": "notregistered@mergington.edu"}
         )
         assert response.status_code == 400
         data = response.json()
@@ -184,8 +190,10 @@ class TestUnregisterFromActivity:
     def test_unregister_then_signup_again(self, client):
         """Test that a student can unregister and then sign up again"""
         # Unregister
-        response1 = client.delete(
-            "/activities/Gym Class/unregister?email=john@mergington.edu"
+        response1 = client.request(
+            "DELETE",
+            "/activities/Gym Class/unregister",
+            json={"email": "john@mergington.edu"}
         )
         assert response1.status_code == 200
         
