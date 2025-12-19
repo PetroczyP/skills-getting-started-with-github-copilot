@@ -117,6 +117,10 @@ section h3 {
   background-color: #c62828;
 }
 
+.delete-btn:focus {
+  outline: 2px solid #ffeb3b;
+  outline-offset: 2px;
+}
 .delete-btn::before {
   content: '🗑️';
   margin-right: 4px;

@@ -48,7 +48,7 @@ app = FastAPI(
 current_dir = Path(__file__).parent
 app.mount(
     "/static",
-    StaticFiles(directory=os.path.join(Path(__file__).parent, "static")),
+    StaticFiles(directory=os.path.join(current_dir, "static")),
     name="static"
 )
 
@@ -180,6 +180,12 @@ def signup_for_activity(activity_name: str, request: SignupRequest) -> Dict[str,
             detail="Student already signed up for this activity"
         )
 
+    # Validate activity has not reached maximum capacity
+    if len(activity["participants"]) >= activity["max_participants"]:
+        raise HTTPException(
+            status_code=400,
+            detail="Activity is full"
+        )
     # Add student to the activity's participant list
     activity["participants"].append(request.email)
     return {"message": f"Signed up {request.email} for {activity_name}"}
