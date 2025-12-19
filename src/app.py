@@ -201,6 +201,7 @@ def unregister_from_activity(
     Raises:
         HTTPException: 404 if the activity does not exist.
         HTTPException: 400 if the student is not signed up for the activity.
+        HTTPException: 422 if the email format is invalid.
     
     Example:
         DELETE /activities/Chess%20Club/unregister
