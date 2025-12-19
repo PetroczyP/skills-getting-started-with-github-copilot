@@ -20,18 +20,34 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, EmailStr
 
-from src.constants import (
-    SupportedLanguage,
-    DEFAULT_LANGUAGE,
-    HTTP_NOT_FOUND,
-    MSG_ACTIVITY_NOT_FOUND
-)
-from src.validators import (
-    validate_and_translate_activity_name,
-    validate_student_not_registered,
-    validate_student_registered,
-    validate_capacity_available
-)
+try:
+    # Try relative imports first (when running directly)
+    from constants import (
+        SupportedLanguage,
+        DEFAULT_LANGUAGE,
+        HTTP_NOT_FOUND,
+        MSG_ACTIVITY_NOT_FOUND
+    )
+    from validators import (
+        validate_and_translate_activity_name,
+        validate_student_not_registered,
+        validate_student_registered,
+        validate_capacity_available
+    )
+except ImportError:
+    # Fall back to absolute imports (when imported as module)
+    from src.constants import (
+        SupportedLanguage,
+        DEFAULT_LANGUAGE,
+        HTTP_NOT_FOUND,
+        MSG_ACTIVITY_NOT_FOUND
+    )
+    from src.validators import (
+        validate_and_translate_activity_name,
+        validate_student_not_registered,
+        validate_student_registered,
+        validate_capacity_available
+    )
 
 
 class SignupRequest(BaseModel):

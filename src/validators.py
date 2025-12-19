@@ -10,14 +10,26 @@ This module provides validation functions for:
 from typing import Dict, Any, Tuple
 from fastapi import HTTPException
 
-from src.constants import (
-    HTTP_NOT_FOUND,
-    HTTP_BAD_REQUEST,
-    MSG_ACTIVITY_NOT_FOUND,
-    MSG_STUDENT_ALREADY_REGISTERED,
-    MSG_STUDENT_NOT_REGISTERED,
-    SupportedLanguage
-)
+try:
+    # Try relative imports first (when running directly)
+    from constants import (
+        HTTP_NOT_FOUND,
+        HTTP_BAD_REQUEST,
+        MSG_ACTIVITY_NOT_FOUND,
+        MSG_STUDENT_ALREADY_REGISTERED,
+        MSG_STUDENT_NOT_REGISTERED,
+        SupportedLanguage
+    )
+except ImportError:
+    # Fall back to absolute imports (when imported as module)
+    from src.constants import (
+        HTTP_NOT_FOUND,
+        HTTP_BAD_REQUEST,
+        MSG_ACTIVITY_NOT_FOUND,
+        MSG_STUDENT_ALREADY_REGISTERED,
+        MSG_STUDENT_NOT_REGISTERED,
+        SupportedLanguage
+    )
 
 
 def validate_and_translate_activity_name(
