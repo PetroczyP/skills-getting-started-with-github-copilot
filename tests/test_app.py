@@ -91,6 +91,16 @@ class TestGetActivities:
 
 class TestSignupForActivity:
     """Tests for POST /activities/{activity_name}/signup endpoint"""
+    
+    # Number of overflow attempts to test capacity enforcement
+    OVERFLOW_TEST_COUNT = 3
+
+    def _get_activity_info(self, client, activity_name):
+        """Helper method to fetch activity information from API.
+        
+        Note: Relies on the reset_activities fixture to ensure consistent state.
+        """
+        return client.get("/activities").json()[activity_name]
 
     def test_signup_for_existing_activity(self, client):
         """Test signing up for an existing activity"""
@@ -144,6 +154,133 @@ class TestSignupForActivity:
         participants = activities_data["Programming Class"]["participants"]
         assert "student1@mergington.edu" in participants
         assert "student2@mergington.edu" in participants
+
+    def test_signup_rejected_when_activity_at_capacity(self, client):
+        """Test that signup is rejected when activity has reached max_participants.
+        
+        Note: This test relies on the reset_activities fixture for consistent initial state.
+        """
+        activity_name = "Chess Club"
+        activity = self._get_activity_info(client, activity_name)
+        
+        initial_count = len(activity["participants"])
+        max_participants = activity["max_participants"]
+        slots_available = max_participants - initial_count
+        
+        # Guard against edge case where activity is already at capacity
+        assert slots_available > 0, \
+            f"{activity_name} is already at capacity in fixture"
+        
+        # Fill all available slots with test-specific email pattern
+        for i in range(slots_available):
+            response = client.post(
+                f"/activities/{activity_name}/signup?email=capacity_test_{i}@mergington.edu"
+            )
+            assert response.status_code == 200, \
+                f"Failed to sign up capacity_test_{i} (signup {i+1}/{slots_available})"
+        
+        # Verify activity is now at capacity
+        activity = self._get_activity_info(client, activity_name)
+        current_count = len(activity["participants"])
+        assert current_count == max_participants, \
+            f"Expected {max_participants} participants, got {current_count}"
+        
+        # Try to add one more student - should fail
+        response = client.post(
+            f"/activities/{activity_name}/signup?email=capacity_overflow@mergington.edu"
+        )
+        assert response.status_code == 400
+        data = response.json()
+        assert data["detail"] == "Activity is full"
+        
+        # Verify student was not added and count remains at capacity
+        activity = self._get_activity_info(client, activity_name)
+        participants = activity["participants"]
+        assert len(participants) == max_participants
+        assert "capacity_overflow@mergington.edu" not in participants
+
+    def test_signup_allowed_when_one_below_capacity(self, client):
+        """Test that signup is allowed when activity is one below capacity.
+        
+        Note: Uses Gym Class to avoid test data overlap with other capacity tests.
+        This test relies on the reset_activities fixture for consistent initial state.
+        """
+        activity_name = "Gym Class"
+        activity = self._get_activity_info(client, activity_name)
+        
+        initial_count = len(activity["participants"])
+        max_participants = activity["max_participants"]
+        slots_to_fill = max_participants - initial_count - 1  # Leave one slot open
+        
+        # Guard against edge case where we can't test the scenario
+        assert slots_to_fill >= 0, \
+            f"{activity_name} doesn't have enough capacity to test this scenario"
+        
+        # Fill slots leaving exactly one open with test-specific email pattern
+        for i in range(slots_to_fill):
+            response = client.post(
+                f"/activities/{activity_name}/signup?email=onebellow_test_{i}@mergington.edu"
+            )
+            assert response.status_code == 200, \
+                f"Failed to sign up onebellow_test_{i} (signup {i+1}/{slots_to_fill})"
+        
+        # Verify activity is one below capacity
+        activity = self._get_activity_info(client, activity_name)
+        current_count = len(activity["participants"])
+        expected_count = max_participants - 1
+        assert current_count == expected_count, \
+            f"Expected {expected_count} participants, got {current_count}"
+        
+        # Add the last student - should succeed
+        response = client.post(
+            f"/activities/{activity_name}/signup?email=onebellow_last@mergington.edu"
+        )
+        assert response.status_code == 200
+        
+        # Verify student was added and activity is now at capacity
+        activity = self._get_activity_info(client, activity_name)
+        participants = activity["participants"]
+        assert len(participants) == max_participants
+        assert "onebellow_last@mergington.edu" in participants
+
+    def test_capacity_check_with_sequential_signups(self, client):
+        """Test that capacity checking works correctly with multiple sequential signups.
+        
+        Note: This test relies on the reset_activities fixture for consistent initial state.
+        """
+        activity_name = "Programming Class"
+        activity = self._get_activity_info(client, activity_name)
+        
+        initial_count = len(activity["participants"])
+        max_participants = activity["max_participants"]
+        slots_available = max_participants - initial_count
+        
+        # Guard against edge case where activity is already at capacity
+        assert slots_available > 0, \
+            f"{activity_name} is already at capacity in fixture"
+        
+        # Fill all available slots with test-specific email pattern
+        for i in range(slots_available):
+            response = client.post(
+                f"/activities/{activity_name}/signup?email=sequential_test_{i}@mergington.edu"
+            )
+            assert response.status_code == 200, \
+                f"Failed to sign up sequential_test_{i} (signup {i+1}/{slots_available})"
+        
+        # Verify activity is at capacity
+        activity = self._get_activity_info(client, activity_name)
+        current_count = len(activity["participants"])
+        assert current_count == max_participants, \
+            f"Expected {max_participants} participants, got {current_count}"
+        
+        # Try to add more students - all should fail (using class constant)
+        for i in range(self.OVERFLOW_TEST_COUNT):
+            response = client.post(
+                f"/activities/{activity_name}/signup?email=sequential_overflow_{i}@mergington.edu"
+            )
+            assert response.status_code == 400, \
+                f"Expected 400 error for sequential_overflow_{i}, got {response.status_code}"
+            assert response.json()["detail"] == "Activity is full"
 
 
 class TestUnregisterFromActivity:
