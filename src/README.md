@@ -67,31 +67,48 @@ The application now supports both English and Hungarian languages:
 
 ## API Endpoints
 
-| Method | Endpoint                                                          | Description                                                         |
-| ------ | ----------------------------------------------------------------- | ------------------------------------------------------------------- |
-| GET    | `/activities?lang={lang}`                                         | Get all activities with their details in specified language (en/hu) |
-| POST   | `/activities/{activity_name}/signup?email={email}&lang={lang}`    | Sign up for an activity with localized response messages            |
-| DELETE | `/activities/{activity_name}/unregister?email={email}&lang={lang}`| Unregister from an activity with localized response messages        |
+| Method | Endpoint                                      | Description                                                         |
+| ------ | --------------------------------------------- | ------------------------------------------------------------------- |
+| GET    | `/activities?lang={lang}`                     | Get all activities with their details in specified language (en/hu) |
+| POST   | `/activities/{activity_name}/signup?lang={lang}` | Sign up for an activity with localized response messages (email in request body) |
+| DELETE | `/activities/{activity_name}/unregister?lang={lang}` | Unregister from an activity with localized response messages (email in request body) |
 
 ### Query Parameters
 
 - `lang` (optional): Language code - `en` for English or `hu` for Hungarian (default: `en`)
-- `email` (required): Student's email address
+
+### Request Body (for POST and DELETE endpoints)
+
+- `email` (required): Student's email address in JSON format
+  - Must be a valid email address format
+  - Example: `{"email": "student@mergington.edu"}`
 
 ### Example API Calls
 
 **English:**
 ```bash
 GET /activities?lang=en
-POST /activities/Chess%20Club/signup?email=student@mergington.edu&lang=en
-DELETE /activities/Chess%20Club/unregister?email=student@mergington.edu&lang=en
+
+POST /activities/Chess%20Club/signup?lang=en
+Content-Type: application/json
+{"email": "student@mergington.edu"}
+
+DELETE /activities/Chess%20Club/unregister?lang=en
+Content-Type: application/json
+{"email": "student@mergington.edu"}
 ```
 
 **Hungarian:**
 ```bash
 GET /activities?lang=hu
-POST /activities/Sakk%20Klub/signup?email=student@mergington.edu&lang=hu
-DELETE /activities/Sakk%20Klub/unregister?email=student@mergington.edu&lang=hu
+
+POST /activities/Sakk%20Klub/signup?lang=hu
+Content-Type: application/json
+{"email": "student@mergington.edu"}
+
+DELETE /activities/Sakk%20Klub/unregister?lang=hu
+Content-Type: application/json
+{"email": "student@mergington.edu"}
 ```
 
 ## Data Model

@@ -20,6 +20,19 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, EmailStr
 
+from src.constants import (
+    SupportedLanguage,
+    DEFAULT_LANGUAGE,
+    HTTP_NOT_FOUND,
+    MSG_ACTIVITY_NOT_FOUND
+)
+from src.validators import (
+    validate_and_translate_activity_name,
+    validate_student_not_registered,
+    validate_student_registered,
+    validate_capacity_available
+)
+
 
 class SignupRequest(BaseModel):
     """Request model for signing up for an activity.
@@ -254,7 +267,9 @@ def root() -> RedirectResponse:
 
 
 @app.get("/activities")
-def get_activities(lang: str = Query("en", pattern="^(en|hu)$")) -> Dict[str, Dict[str, Any]]:
+def get_activities(
+    lang: str = Query(DEFAULT_LANGUAGE, pattern=f"^({SupportedLanguage.ENGLISH.value}|{SupportedLanguage.HUNGARIAN.value})$")
+) -> Dict[str, Dict[str, Any]]:
     """Retrieve all available extracurricular activities in the specified language.
     
     Args:
@@ -275,7 +290,7 @@ def get_activities(lang: str = Query("en", pattern="^(en|hu)$")) -> Dict[str, Di
 def signup_for_activity(
     activity_name: str,
     request: SignupRequest,
-    lang: str = Query("en", pattern="^(en|hu)$")
+    lang: str = Query(DEFAULT_LANGUAGE, pattern=f"^({SupportedLanguage.ENGLISH.value}|{SupportedLanguage.HUNGARIAN.value})$")
 ) -> Dict[str, str]:
     """Sign up a student for an extracurricular activity.
     
@@ -301,39 +316,29 @@ def signup_for_activity(
     """
     email = request.email
     
-    # Convert Hungarian activity name to English for internal storage
-    en_activity_name = activity_name
-    if lang == "hu" and activity_name in activity_name_mapping_reverse:
-        en_activity_name = activity_name_mapping_reverse[activity_name]
-    elif lang == "en" and activity_name not in activity_name_mapping:
-        # Check if it's a valid English activity name
-        if activity_name not in activities_en:
-            raise HTTPException(status_code=404, detail="Activity not found")
+    # Validate and translate activity name to English
+    en_activity_name = validate_and_translate_activity_name(
+        activity_name, lang, activity_name_mapping_reverse, activities_en
+    )
     
-    # Validate activity exists in English database
+    # Validate activity exists in participant storage
     if en_activity_name not in participants_storage:
-        raise HTTPException(status_code=404, detail="Activity not found")
+        raise HTTPException(status_code=HTTP_NOT_FOUND, detail=MSG_ACTIVITY_NOT_FOUND)
     
     # Get activity details
-    activities_dict = get_activities_by_language("en")
+    activities_dict = get_activities_by_language(SupportedLanguage.ENGLISH.value)
     if en_activity_name not in activities_dict:
-        raise HTTPException(status_code=404, detail="Activity not found")
+        raise HTTPException(status_code=HTTP_NOT_FOUND, detail=MSG_ACTIVITY_NOT_FOUND)
     
     activity = activities_dict[en_activity_name]
     
     # Validate student is not already signed up
-    if email in participants_storage[en_activity_name]:
-        raise HTTPException(
-            status_code=400,
-            detail="Student already signed up for this activity"
-        )
+    validate_student_not_registered(email, en_activity_name, participants_storage)
 
     # Validate activity has not reached maximum capacity
-    if len(participants_storage[en_activity_name]) >= activity["max_participants"]:
-        raise HTTPException(
-            status_code=400,
-            detail=messages[lang]["activity_full"]
-        )
+    validate_capacity_available(
+        en_activity_name, activity, participants_storage, messages[lang]["activity_full"]
+    )
     
     # Add student to the activity's participant list
     participants_storage[en_activity_name].append(email)
@@ -346,7 +351,7 @@ def signup_for_activity(
 def unregister_from_activity(
     activity_name: str,
     request: UnregisterRequest,
-    lang: str = Query("en", pattern="^(en|hu)$")
+    lang: str = Query(DEFAULT_LANGUAGE, pattern=f"^({SupportedLanguage.ENGLISH.value}|{SupportedLanguage.HUNGARIAN.value})$")
 ) -> Dict[str, str]:
     """Unregister a student from an extracurricular activity.
     
@@ -372,25 +377,17 @@ def unregister_from_activity(
     """
     email = request.email
     
-    # Convert Hungarian activity name to English for internal storage
-    en_activity_name = activity_name
-    if lang == "hu" and activity_name in activity_name_mapping_reverse:
-        en_activity_name = activity_name_mapping_reverse[activity_name]
-    elif lang == "en" and activity_name not in activity_name_mapping:
-        # Check if it's a valid English activity name
-        if activity_name not in activities_en:
-            raise HTTPException(status_code=404, detail="Activity not found")
+    # Validate and translate activity name to English
+    en_activity_name = validate_and_translate_activity_name(
+        activity_name, lang, activity_name_mapping_reverse, activities_en
+    )
     
     # Validate activity exists
     if en_activity_name not in participants_storage:
-        raise HTTPException(status_code=404, detail="Activity not found")
+        raise HTTPException(status_code=HTTP_NOT_FOUND, detail=MSG_ACTIVITY_NOT_FOUND)
 
     # Validate student is signed up for the activity
-    if email not in participants_storage[en_activity_name]:
-        raise HTTPException(
-            status_code=400,
-            detail="Student is not signed up for this activity"
-        )
+    validate_student_registered(email, en_activity_name, participants_storage)
 
     # Remove student from the activity's participant list
     participants_storage[en_activity_name].remove(email)
