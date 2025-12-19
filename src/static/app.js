@@ -87,6 +87,27 @@ document.addEventListener("DOMContentLoaded", () => {
           noParticipants.textContent = "No participants yet. Be the first to sign up!";
           participantsSection.appendChild(noParticipants);
         }
+        const participantsList = details.participants.length > 0
+          ? `<ul class="participants-list" data-activity="${name}">
+              ${details.participants.map(email => `
+                <li>
+                  <span>${email}</span>
+                  <button class="delete-btn" data-email="${email}" data-activity="${name}" aria-label="Remove ${email} from ${name}">Delete</button>
+                </li>
+              `).join('')}
+             </ul>`
+          : `<p class="no-participants">No participants yet. Be the first to sign up!</p>`;
+
+        activityCard.innerHTML = `
+          <h4>${name}</h4>
+          <p>${details.description}</p>
+          <p><strong>Schedule:</strong> ${details.schedule}</p>
+          <p><strong>Availability:</strong> ${spotsLeft} spots left</p>
+          <div class="participants-section">
+            <p class="participants-header"><strong>Current Participants:</strong></p>
+            ${participantsList}
+          </div>
+        `;
 
         activityCard.appendChild(participantsSection);
         activitiesList.appendChild(activityCard);
@@ -115,9 +136,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
     try {
       const response = await fetch(
-        `/activities/${encodeURIComponent(activity)}/signup?email=${encodeURIComponent(email)}`,
+        `/activities/${encodeURIComponent(activity)}/signup`,
         {
           method: "POST",
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ email: email }),
         }
       );
 
@@ -158,9 +183,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
       try {
         const response = await fetch(
-          `/activities/${encodeURIComponent(activity)}/unregister?email=${encodeURIComponent(email)}`,
+          `/activities/${encodeURIComponent(activity)}/unregister`,
           {
             method: 'DELETE',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ email: email }),
           }
         );
 
