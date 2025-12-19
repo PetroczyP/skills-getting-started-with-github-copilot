@@ -3,4 +3,4 @@ uvicorn
 pytest
 pytest-asyncio
 httpx
-email-validator
+pydantic[email]

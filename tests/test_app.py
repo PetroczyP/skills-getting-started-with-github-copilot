@@ -188,7 +188,8 @@ class TestSignupForActivity:
         # Fill all available slots with test-specific email pattern
         for i in range(slots_available):
             response = client.post(
-                f"/activities/{activity_name}/signup?email=capacity_test_{i}@mergington.edu"
+                f"/activities/{activity_name}/signup",
+                json={"email": f"capacity_test_{i}@mergington.edu"}
             )
             assert response.status_code == 200, \
                 f"Failed to sign up capacity_test_{i} (signup {i+1}/{slots_available})"
@@ -201,7 +202,8 @@ class TestSignupForActivity:
         
         # Try to add one more student - should fail
         response = client.post(
-            f"/activities/{activity_name}/signup?email=capacity_overflow@mergington.edu"
+            f"/activities/{activity_name}/signup",
+            json={"email": "capacity_overflow@mergington.edu"}
         )
         assert response.status_code == 400
         data = response.json()
@@ -233,7 +235,8 @@ class TestSignupForActivity:
         # Fill slots leaving exactly one open with test-specific email pattern
         for i in range(slots_to_fill):
             response = client.post(
-                f"/activities/{activity_name}/signup?email=onebellow_test_{i}@mergington.edu"
+                f"/activities/{activity_name}/signup",
+                json={"email": f"onebellow_test_{i}@mergington.edu"}
             )
             assert response.status_code == 200, \
                 f"Failed to sign up onebellow_test_{i} (signup {i+1}/{slots_to_fill})"
@@ -247,7 +250,8 @@ class TestSignupForActivity:
         
         # Add the last student - should succeed
         response = client.post(
-            f"/activities/{activity_name}/signup?email=onebellow_last@mergington.edu"
+            f"/activities/{activity_name}/signup",
+            json={"email": "onebellow_last@mergington.edu"}
         )
         assert response.status_code == 200
         
@@ -276,7 +280,8 @@ class TestSignupForActivity:
         # Fill all available slots with test-specific email pattern
         for i in range(slots_available):
             response = client.post(
-                f"/activities/{activity_name}/signup?email=sequential_test_{i}@mergington.edu"
+                f"/activities/{activity_name}/signup",
+                json={"email": f"sequential_test_{i}@mergington.edu"}
             )
             assert response.status_code == 200, \
                 f"Failed to sign up sequential_test_{i} (signup {i+1}/{slots_available})"
@@ -290,7 +295,8 @@ class TestSignupForActivity:
         # Try to add more students - all should fail (using class constant)
         for i in range(self.OVERFLOW_TEST_COUNT):
             response = client.post(
-                f"/activities/{activity_name}/signup?email=sequential_overflow_{i}@mergington.edu"
+                f"/activities/{activity_name}/signup",
+                json={"email": f"sequential_overflow_{i}@mergington.edu"}
             )
             assert response.status_code == 400, \
                 f"Expected 400 error for sequential_overflow_{i}, got {response.status_code}"
