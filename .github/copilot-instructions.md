@@ -69,15 +69,49 @@ cd src && uvicorn app:app --reload --host 0.0.0.0 --port 8000
 
 ### Testing
 
+#### ⚠️ CRITICAL: Test Prerequisites for AI Agents
+
+**Before running ANY tests, understand the test architecture:**
+
+1. **API Tests** (`tests/test_app.py`, `tests/test_infrastructure.py`)
+   - ✅ **No special setup required** - can run directly with system Python
+   - Run from workspace root: `pytest tests/test_app.py tests/test_infrastructure.py -v`
+   - **Total:** 61 tests (21 functional + 40 infrastructure)
+
+2. **UI Tests** (`tests/playwright/`)
+   - ⚠️ **REQUIRES virtual environment setup** - WILL FAIL without it
+   - **Why:** Playwright browsers must be installed in a venv (conftest.py enforces this)
+   - **Setup once:** `./scripts/setup_venv.sh` (installs venv, dependencies, browsers ~500MB download)
+   - **Run:** `source venv/bin/activate && pytest tests/playwright/ -v --browser chromium`
+   - **Shortcut:** `./scripts/run_ui_tests.sh` (handles activation automatically)
+   - **Total:** 30 tests (language, signup, unregister, capacity, display)
+
+3. **BDD Tests** (`tests/features/`, `tests/step_defs/`)
+   - ✅ **No special setup** - uses same fixtures as API tests
+   - Run: `pytest -m bdd -v`
+
+**Common AI Agent Mistakes to Avoid:**
+- ❌ Running `pytest tests/playwright/` without venv → RuntimeError
+- ❌ Assuming UI tests work if they import successfully → Must actually RUN them
+- ❌ Skipping venv setup to "save time" → Tests will fail 100% of the time
+- ✅ **ALWAYS run venv setup before touching UI tests**
+- ✅ **Verify with actual test execution, not assumptions**
+
+**Quick Test Commands:**
+
 ```bash
-# Run all tests from workspace root
-pytest
+# API tests only (no venv needed)
+pytest tests/test_app.py tests/test_infrastructure.py -v
 
-# Run specific test class
-pytest tests/test_app.py::TestSignupForActivity
+# UI tests (requires venv setup first)
+./scripts/setup_venv.sh  # One-time setup
+source venv/bin/activate && pytest tests/playwright/ -v --browser chromium
 
-# Run with verbose output
-pytest -v
+# OR use the wrapper script
+./scripts/run_ui_tests.sh  # Handles venv activation automatically
+
+# All tests (API + UI)
+pytest tests/test_app.py tests/test_infrastructure.py -v && ./scripts/run_ui_tests.sh
 ```
 
 **Test fixture pattern:** `reset_participants` fixture (autouse=True) resets state before each test to ensure isolation.
