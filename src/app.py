@@ -19,38 +19,20 @@ from fastapi import FastAPI, HTTPException, Query, Depends
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse
 
-try:
-    # Try relative imports first (when running directly)
-    from constants import (
-        SupportedLanguage,
-        DEFAULT_LANGUAGE,
-        HTTP_NOT_FOUND,
-        HTTP_BAD_REQUEST
-    )
-    from models import SignupRequest, UnregisterRequest, MessageResponse
-    from service import ActivityService
-    from exceptions import (
-        ActivityNotFoundError,
-        ActivityCapacityError,
-        StudentAlreadyRegisteredError,
-        StudentNotRegisteredError
-    )
-except ImportError:
-    # Fall back to absolute imports (when imported as module)
-    from src.constants import (
-        SupportedLanguage,
-        DEFAULT_LANGUAGE,
-        HTTP_NOT_FOUND,
-        HTTP_BAD_REQUEST
-    )
-    from src.models import SignupRequest, UnregisterRequest, MessageResponse
-    from src.service import ActivityService
-    from src.exceptions import (
-        ActivityNotFoundError,
-        ActivityCapacityError,
-        StudentAlreadyRegisteredError,
-        StudentNotRegisteredError
-    )
+from .constants import (
+    SupportedLanguage,
+    DEFAULT_LANGUAGE,
+    HTTP_NOT_FOUND,
+    HTTP_BAD_REQUEST,
+)
+from .models import SignupRequest, UnregisterRequest, MessageResponse
+from .service import ActivityService
+from .exceptions import (
+    ActivityNotFoundError,
+    ActivityCapacityError,
+    StudentAlreadyRegisteredError,
+    StudentNotRegisteredError,
+)
 
 
 app = FastAPI(
