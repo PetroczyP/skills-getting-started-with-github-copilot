@@ -87,8 +87,12 @@ class ActivityService:
         if en_name not in self.activities_en:
             raise ActivityNotFoundError("Activity not found", activity_name)
         
+        # Validate activity exists in participant storage for consistency
+        if en_name not in self.participants_storage:
+            raise ActivityNotFoundError("Activity not found", activity_name)
+        
         activity_data = self.activities_en[en_name].copy()
-        activity_data["participants"] = self.participants_storage.get(en_name, [])
+        activity_data["participants"] = self.participants_storage[en_name]
         
         return ActivityDetails(**activity_data)
     
