@@ -1,12 +1,7 @@
 #!/bin/bash
 
 # Add all changes
-git add src/models.py
-git add src/exceptions.py
-git add src/service.py
-git add src/app.py
-git add tests/test_infrastructure.py
-git add OPTIMIZATION_GUIDE.md
+git add .
 
 # Show status
 echo "=== Git Status ==="
