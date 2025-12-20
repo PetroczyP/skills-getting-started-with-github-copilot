@@ -31,6 +31,7 @@ MSG_ACTIVITY_NOT_FOUND: Final[str] = "Activity not found"
 MSG_STUDENT_ALREADY_REGISTERED: Final[str] = "Student already signed up for this activity"
 MSG_STUDENT_NOT_REGISTERED: Final[str] = "Student is not signed up for this activity"
 
-# Rate limiting (future use)
+# Rate limiting configuration constants (currently unused).
+# TODO: When implementing request rate limiting, wire these constants into the throttling logic or remove them.
 RATE_LIMIT_PER_MINUTE: Final[int] = 60
 RATE_LIMIT_PER_HOUR: Final[int] = 1000
