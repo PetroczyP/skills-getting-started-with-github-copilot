@@ -8,6 +8,7 @@ Tests the activity list rendering including:
 """
 
 import pytest
+from playwright.sync_api import expect
 from tests.playwright.pages.activities_page import ActivitiesPage
 
 
