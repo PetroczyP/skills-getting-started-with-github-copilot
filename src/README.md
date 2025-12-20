@@ -6,31 +6,110 @@ A super simple FastAPI application that allows students to view and sign up for 
 
 - View all available extracurricular activities
 - Sign up for activities
+- Unregister from activities
+- **Multi-language support** (English and Hungarian)
+- Language switching with flag icons
+
+## Multi-Language Support
+
+The application now supports both English and Hungarian languages:
+
+### Frontend Language Switching
+
+- Click on the **🇬🇧 (English)** or **🇭🇺 (Hungarian)** flag buttons in the header to switch languages
+- Language preference is saved in browser localStorage
+- The page will not reload if you click on the currently active language
+- All UI text, activity names, descriptions, and messages are translated
+
+### Supported Languages
+
+- **English (en)** - Default language
+- **Hungarian (hu)** - Magyar nyelv
+
+### What Gets Translated
+
+1. **UI Elements:**
+   - Header text (school name, page title)
+   - Form labels and placeholders
+   - Button text
+   - Loading and error messages
+   - Confirmation dialogs
+
+2. **Activity Content:**
+   - Activity names
+   - Activity descriptions
+   - Schedule information
+
+3. **API Response Messages:**
+   - Success messages (signup, unregister)
+   - User-facing error messages
+
+**Note:** System-level errors and backend logs remain in English for technical consistency.
 
 ## Getting Started
 
 1. Install the dependencies:
 
-   ```
+   ```bash
    pip install fastapi uvicorn
    ```
 
 2. Run the application:
 
-   ```
+   ```bash
    python app.py
    ```
 
 3. Open your browser and go to:
+   - Web application: http://localhost:8000/
    - API documentation: http://localhost:8000/docs
    - Alternative documentation: http://localhost:8000/redoc
 
 ## API Endpoints
 
-| Method | Endpoint                                                          | Description                                                         |
-| ------ | ----------------------------------------------------------------- | ------------------------------------------------------------------- |
-| GET    | `/activities`                                                     | Get all activities with their details and current participant count |
-| POST   | `/activities/{activity_name}/signup?email=student@mergington.edu` | Sign up for an activity                                             |
+| Method | Endpoint                                      | Description                                                         |
+| ------ | --------------------------------------------- | ------------------------------------------------------------------- |
+| GET    | `/activities?lang={lang}`                     | Get all activities with their details in specified language (en/hu) |
+| POST   | `/activities/{activity_name}/signup?lang={lang}` | Sign up for an activity with localized response messages (email in request body) |
+| DELETE | `/activities/{activity_name}/unregister?lang={lang}` | Unregister from an activity with localized response messages (email in request body) |
+
+### Query Parameters
+
+- `lang` (optional): Language code - `en` for English or `hu` for Hungarian (default: `en`)
+
+### Request Body (for POST and DELETE endpoints)
+
+- `email` (required): Student's email address in JSON format
+  - Must be a valid email address format
+  - Example: `{"email": "student@mergington.edu"}`
+
+### Example API Calls
+
+**English:**
+```bash
+GET /activities?lang=en
+
+POST /activities/Chess%20Club/signup?lang=en
+Content-Type: application/json
+{"email": "student@mergington.edu"}
+
+DELETE /activities/Chess%20Club/unregister?lang=en
+Content-Type: application/json
+{"email": "student@mergington.edu"}
+```
+
+**Hungarian:**
+```bash
+GET /activities?lang=hu
+
+POST /activities/Sakk%20Klub/signup?lang=hu
+Content-Type: application/json
+{"email": "student@mergington.edu"}
+
+DELETE /activities/Sakk%20Klub/unregister?lang=hu
+Content-Type: application/json
+{"email": "student@mergington.edu"}
+```
 
 ## Data Model
 
@@ -38,13 +117,36 @@ The application uses a simple data model with meaningful identifiers:
 
 1. **Activities** - Uses activity name as identifier:
 
-   - Description
-   - Schedule
+   - Description (translated per language)
+   - Schedule (translated per language)
    - Maximum number of participants allowed
-   - List of student emails who are signed up
+   - List of student emails who are signed up (shared across languages)
 
 2. **Students** - Uses email as identifier:
    - Name
    - Grade level
 
-All data is stored in memory, which means data will be reset when the server restarts.
+All data is stored in memory, which means data will be reset when the server restarts. **Participant lists are synchronized across both language versions** - a student signed up in English will also appear in the Hungarian version.
+
+## Technical Details
+
+### Language Implementation
+
+- **Frontend:** JavaScript translation dictionaries with localStorage persistence
+- **Backend:** Python dictionaries for English and Hungarian activity data
+- **Participant Storage:** Shared storage ensuring consistency across languages
+- **Activity Name Mapping:** Bidirectional mapping between English and Hungarian activity names
+
+## Testing
+
+Run the test suite with:
+
+```bash
+pytest
+```
+
+The test suite includes tests for:
+- Language-specific API responses
+- Participant synchronization across languages
+- Localized error messages
+- Capacity enforcement for both languages
