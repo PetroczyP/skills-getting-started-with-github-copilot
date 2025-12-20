@@ -85,8 +85,9 @@ class TestModuleImports:
             MSG_STUDENT_NOT_REGISTERED
         )
         
-        assert SupportedLanguage is not None
-        assert DEFAULT_LANGUAGE is not None
+        assert SupportedLanguage.ENGLISH.value == "en"
+        assert SupportedLanguage.HUNGARIAN.value == "hu"
+        assert DEFAULT_LANGUAGE == "en"
         assert HTTP_NOT_FOUND == 404
         assert HTTP_BAD_REQUEST == 400
         assert MSG_ACTIVITY_NOT_FOUND == "Activity not found"
