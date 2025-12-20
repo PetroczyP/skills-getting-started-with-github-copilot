@@ -197,6 +197,18 @@ class TestSignupForActivity:
         assert "student1@mergington.edu" in participants
         assert "student2@mergington.edu" in participants
 
+    def test_signup_with_invalid_email(self, client):
+        """Test signing up with an invalid email format"""
+        response = client.post(
+            "/activities/Chess Club/signup",
+            json={"email": "not-an-email"}
+        )
+        assert response.status_code == 422
+        data = response.json()
+        assert "detail" in data
+
+    def test_signup_rejected_when_activity_at_capacity(self, client):
+        """Test that signup is rejected when activity has reached max_participants.
     def test_signup_rejected_when_activity_at_capacity_en(self, client):
         """Test that signup is rejected when activity has reached max_participants (English).
         
@@ -289,11 +301,13 @@ class TestSignupForActivity:
         # Fill slots leaving exactly one open with test-specific email pattern
         for i in range(slots_to_fill):
             response = client.post(
+                f"/activities/{activity_name}/signup",
+                json={"email": f"onebelow_test_{i}@mergington.edu"}
                 f"/activities/{activity_name}/signup?lang=en",
                 json={"email": f"onebellow_test_{i}@mergington.edu"}
             )
             assert response.status_code == 200, \
-                f"Failed to sign up onebellow_test_{i} (signup {i+1}/{slots_to_fill})"
+                f"Failed to sign up onebelow_test_{i} (signup {i+1}/{slots_to_fill})"
         
         # Verify activity is one below capacity
         activity = self._get_activity_info(client, activity_name, "en")
@@ -304,6 +318,8 @@ class TestSignupForActivity:
         
         # Add the last student - should succeed
         response = client.post(
+            f"/activities/{activity_name}/signup",
+            json={"email": "onebelow_last@mergington.edu"}
             f"/activities/{activity_name}/signup?lang=en",
             json={"email": "onebellow_last@mergington.edu"}
         )
@@ -313,7 +329,7 @@ class TestSignupForActivity:
         activity = self._get_activity_info(client, activity_name, "en")
         participants = activity["participants"]
         assert len(participants) == max_participants
-        assert "onebellow_last@mergington.edu" in participants
+        assert "onebelow_last@mergington.edu" in participants
 
     def test_capacity_check_with_sequential_signups(self, client):
         """Test that capacity checking works correctly with multiple sequential signups.
