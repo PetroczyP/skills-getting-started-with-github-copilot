@@ -17,11 +17,56 @@ body {
 
 header {
   text-align: center;
-  padding: 20px 0;
+  padding: 20px;
   margin-bottom: 30px;
   background-color: #1a237e;
   color: white;
   border-radius: 5px;
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.header-text {
+  flex: 1;
+  text-align: center;
+}
+
+.language-switcher {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.flag-btn {
+  font-size: 28px;
+  background: transparent;
+  border: 2px solid transparent;
+  border-radius: 5px;
+  cursor: pointer;
+  padding: 5px 10px;
+  transition: all 0.3s ease;
+  line-height: 1;
+}
+
+.flag-btn:hover {
+  border-color: rgba(255, 255, 255, 0.5);
+  transform: scale(1.1);
+}
+
+.flag-btn.active {
+  border-color: white;
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+.flag-btn:focus {
+  outline: 2px solid white;
+  outline-offset: 2px;
 }
 
 header h1 {
