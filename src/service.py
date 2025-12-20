@@ -14,7 +14,6 @@ from src.exceptions import (
     StudentAlreadyRegisteredError,
     StudentNotRegisteredError
 )
-from src.constants import SupportedLanguage
 
 
 class ActivityService:
