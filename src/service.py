@@ -43,17 +43,21 @@ class ActivityService:
         self.participants_storage = participants_storage
     
     def translate_activity_name(self, activity_name: str, lang: str) -> str:
-        """Translate activity name to English for internal use.
+        """Validate and normalize activity name to English for internal use.
+        
+        Translates Hungarian activity names to English when lang='hu', otherwise
+        validates that the provided name exists in the English activity dictionary.
         
         Args:
             activity_name: Activity name in specified language
-            lang: Language code
+            lang: Language code ('en' or 'hu')
             
         Returns:
-            English activity name
+            Validated English activity name (translated from Hungarian if necessary,
+            or the same as input if already a valid English name)
             
         Raises:
-            ActivityNotFoundError: If activity doesn't exist
+            ActivityNotFoundError: If activity doesn't exist in either language
         """
         if lang == "hu":
             if activity_name in self.activity_name_mapping_reverse:
