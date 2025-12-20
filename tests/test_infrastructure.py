@@ -20,7 +20,6 @@ configuration and import issues early in the development cycle.
 """
 
 import pytest
-from pathlib import Path
 
 
 class TestModuleImports:
