@@ -25,6 +25,7 @@ import pytest
 class TestModuleImports:
     """Test that all modules can be imported without errors"""
 
+    @pytest.mark.test_id("TC-INFRA-IMPORT-001")
     def test_import_app_module(self):
         """Test that the main app module can be imported"""
         try:
@@ -33,6 +34,7 @@ class TestModuleImports:
         except ImportError as e:
             pytest.fail(f"Failed to import src.app: {e}")
 
+    @pytest.mark.test_id("TC-INFRA-IMPORT-002")
     def test_import_constants_module(self):
         """Test that the constants module can be imported"""
         try:
@@ -41,6 +43,7 @@ class TestModuleImports:
         except ImportError as e:
             pytest.fail(f"Failed to import src.constants: {e}")
 
+    @pytest.mark.test_id("TC-INFRA-IMPORT-003")
     def test_import_validators_module(self):
         """Test that the validators module can be imported"""
         try:
@@ -49,6 +52,7 @@ class TestModuleImports:
         except ImportError as e:
             pytest.fail(f"Failed to import src.validators: {e}")
 
+    @pytest.mark.test_id("TC-INFRA-IMPORT-004")
     def test_import_models_module(self):
         """Test that the models module can be imported"""
         try:
@@ -57,6 +61,7 @@ class TestModuleImports:
         except ImportError as e:
             pytest.fail(f"Failed to import src.models: {e}")
 
+    @pytest.mark.test_id("TC-INFRA-IMPORT-005")
     def test_import_service_module(self):
         """Test that the service module can be imported"""
         try:
@@ -65,6 +70,7 @@ class TestModuleImports:
         except ImportError as e:
             pytest.fail(f"Failed to import src.service: {e}")
 
+    @pytest.mark.test_id("TC-INFRA-IMPORT-006")
     def test_import_exceptions_module(self):
         """Test that the exceptions module can be imported"""
         try:
@@ -73,6 +79,7 @@ class TestModuleImports:
         except ImportError as e:
             pytest.fail(f"Failed to import src.exceptions: {e}")
 
+    @pytest.mark.test_id("TC-INFRA-IMPORT-007")
     def test_all_constants_available(self):
         """Test that all required constants are defined"""
         from src.constants import (
@@ -94,6 +101,7 @@ class TestModuleImports:
         assert MSG_STUDENT_ALREADY_REGISTERED == "Student already signed up for this activity"
         assert MSG_STUDENT_NOT_REGISTERED == "Student is not signed up for this activity"
 
+    @pytest.mark.test_id("TC-INFRA-IMPORT-008")
     def test_all_validators_available(self):
         """Test that all validator functions are available"""
         from src.validators import (
@@ -108,6 +116,7 @@ class TestModuleImports:
         assert callable(validate_student_registered)
         assert callable(validate_capacity_available)
 
+    @pytest.mark.test_id("TC-INFRA-IMPORT-009")
     def test_all_models_available(self):
         """Test that all model classes are available"""
         from src.models import (
@@ -122,6 +131,7 @@ class TestModuleImports:
         assert ActivityDetails is not None
         assert MessageResponse is not None
 
+    @pytest.mark.test_id("TC-INFRA-IMPORT-010")
     def test_all_exceptions_available(self):
         """Test that all exception classes are available"""
         from src.exceptions import (
@@ -138,6 +148,7 @@ class TestModuleImports:
         assert issubclass(StudentAlreadyRegisteredError, StudentRegistrationError)
         assert issubclass(StudentNotRegisteredError, StudentRegistrationError)
 
+    @pytest.mark.test_id("TC-INFRA-IMPORT-011")
     def test_service_class_available(self):
         """Test that the ActivityService class is available"""
         from src.service import ActivityService
@@ -149,6 +160,7 @@ class TestModuleImports:
 class TestApplicationCreation:
     """Test that the FastAPI application can be created successfully"""
 
+    @pytest.mark.test_id("TC-INFRA-APP-001")
     def test_app_instance_exists(self):
         """Test that the FastAPI app instance is created"""
         from src.app import app
@@ -157,6 +169,7 @@ class TestApplicationCreation:
         assert isinstance(app, FastAPI)
         assert app.title == "Mergington High School API"
 
+    @pytest.mark.test_id("TC-INFRA-APP-002")
     def test_app_has_routes(self):
         """Test that the app has the expected routes"""
         from src.app import app
@@ -169,6 +182,7 @@ class TestApplicationCreation:
         assert "/activities/{activity_name}/signup" in routes
         assert "/activities/{activity_name}/unregister" in routes
 
+    @pytest.mark.test_id("TC-INFRA-APP-003")
     def test_app_has_static_files_mounted(self):
         """Test that static files are mounted"""
         from src.app import app
@@ -176,6 +190,7 @@ class TestApplicationCreation:
         routes = [route.path for route in app.routes]
         assert any("/static" in path for path in routes)
 
+    @pytest.mark.test_id("TC-INFRA-APP-004")
     def test_pydantic_models_defined(self):
         """Test that Pydantic request models are properly defined"""
         from src.app import SignupRequest, UnregisterRequest
@@ -192,6 +207,7 @@ class TestApplicationCreation:
 class TestDataStructures:
     """Test that all required data structures are properly initialized"""
 
+    @pytest.mark.test_id("TC-INFRA-DATA-001")
     def test_activities_data_structures_exist(self):
         """Test that activity dictionaries are defined"""
         from src.app import activities_en, activities_hu
@@ -201,6 +217,7 @@ class TestDataStructures:
         assert len(activities_en) > 0
         assert len(activities_hu) > 0
 
+    @pytest.mark.test_id("TC-INFRA-DATA-002")
     def test_activity_mappings_exist(self):
         """Test that activity name mappings are defined"""
         from src.app import activity_name_mapping, activity_name_mapping_reverse
@@ -210,12 +227,14 @@ class TestDataStructures:
         assert len(activity_name_mapping) > 0
         assert len(activity_name_mapping_reverse) > 0
 
+    @pytest.mark.test_id("TC-INFRA-DATA-003")
     def test_participants_storage_exists(self):
         """Test that participant storage is initialized"""
         from src.app import participants_storage
         
         assert isinstance(participants_storage, dict)
 
+    @pytest.mark.test_id("TC-INFRA-DATA-004")
     def test_messages_dictionary_exists(self):
         """Test that message translations are defined"""
         from src.app import messages
@@ -230,6 +249,7 @@ class TestDataStructures:
             assert "unregistered" in messages[lang]
             assert "activity_full" in messages[lang]
 
+    @pytest.mark.test_id("TC-INFRA-DATA-005")
     def test_activity_structure_valid(self):
         """Test that activities have the correct structure"""
         from src.app import activities_en
@@ -245,6 +265,7 @@ class TestDataStructures:
             assert isinstance(activity_data["max_participants"], int)
             assert isinstance(activity_data["participants"], list)
 
+    @pytest.mark.test_id("TC-INFRA-DATA-006")
     def test_activity_name_mapping_bidirectional(self):
         """Test that activity name mappings are bidirectional"""
         from src.app import activity_name_mapping, activity_name_mapping_reverse
@@ -257,6 +278,7 @@ class TestDataStructures:
 class TestDependencies:
     """Test that all required dependencies are available"""
 
+    @pytest.mark.test_id("TC-INFRA-DEPS-001")
     def test_fastapi_available(self):
         """Test that FastAPI is installed"""
         try:
@@ -265,6 +287,7 @@ class TestDependencies:
         except ImportError:
             pytest.fail("FastAPI is not installed")
 
+    @pytest.mark.test_id("TC-INFRA-DEPS-002")
     def test_pydantic_available(self):
         """Test that Pydantic is installed"""
         try:
@@ -273,6 +296,7 @@ class TestDependencies:
         except ImportError:
             pytest.fail("Pydantic is not installed")
 
+    @pytest.mark.test_id("TC-INFRA-DEPS-003")
     def test_pydantic_email_validator_available(self):
         """Test that Pydantic email validator is available"""
         try:
@@ -281,6 +305,7 @@ class TestDependencies:
         except ImportError:
             pytest.fail("Pydantic EmailStr is not available. Install with: pip install pydantic[email]")
 
+    @pytest.mark.test_id("TC-INFRA-DEPS-004")
     def test_uvicorn_available(self):
         """Test that Uvicorn is installed"""
         try:
@@ -289,6 +314,7 @@ class TestDependencies:
         except ImportError:
             pytest.fail("Uvicorn is not installed")
 
+    @pytest.mark.test_id("TC-INFRA-DEPS-005")
     def test_pytest_available(self):
         """Test that pytest is installed"""
         try:
@@ -297,6 +323,7 @@ class TestDependencies:
         except ImportError:
             pytest.fail("pytest is not installed")
 
+    @pytest.mark.test_id("TC-INFRA-DEPS-006")
     def test_httpx_available(self):
         """Test that httpx is installed (required for TestClient)"""
         try:
@@ -309,6 +336,7 @@ class TestDependencies:
 class TestStaticFiles:
     """Test that static files exist and are accessible"""
 
+    @pytest.mark.test_id("TC-INFRA-FILES-001")
     def test_static_directory_exists(self):
         """Test that the static directory exists"""
         from pathlib import Path
@@ -317,6 +345,7 @@ class TestStaticFiles:
         assert static_dir.exists(), f"Static directory not found at {static_dir}"
         assert static_dir.is_dir(), f"{static_dir} is not a directory"
 
+    @pytest.mark.test_id("TC-INFRA-FILES-002")
     def test_static_files_exist(self):
         """Test that required static files exist"""
         from pathlib import Path
@@ -330,6 +359,7 @@ class TestStaticFiles:
             assert file_path.exists(), f"Required static file not found: {file_name}"
             assert file_path.is_file(), f"{file_name} is not a file"
 
+    @pytest.mark.test_id("TC-INFRA-FILES-003")
     def test_index_html_valid(self):
         """Test that index.html contains required elements"""
         from pathlib import Path
@@ -349,6 +379,7 @@ class TestStaticFiles:
         assert "activities-list" in content
         assert "signup-form" in content
 
+    @pytest.mark.test_id("TC-INFRA-FILES-004")
     def test_app_js_valid(self):
         """Test that app.js contains required functionality"""
         from pathlib import Path
@@ -367,6 +398,7 @@ class TestStaticFiles:
 class TestEndpointFunctions:
     """Test that endpoint handler functions work correctly"""
 
+    @pytest.mark.test_id("TC-INFRA-ENDPOINT-001")
     def test_activity_service_get_all_activities(self):
         """Test the ActivityService.get_all_activities method"""
         from src.app import get_activity_service
@@ -400,6 +432,7 @@ class TestEndpointFunctions:
 class TestValidatorFunctions:
     """Test that validator functions work as expected"""
 
+    @pytest.mark.test_id("TC-INFRA-VALIDATOR-001")
     def test_validate_and_translate_activity_name(self):
         """Test activity name validation and translation"""
         from src.validators import validate_and_translate_activity_name
@@ -425,6 +458,7 @@ class TestValidatorFunctions:
             )
         assert exc_info.value.status_code == 404
 
+    @pytest.mark.test_id("TC-INFRA-VALIDATOR-002")
     def test_validate_capacity_available(self):
         """Test capacity validation"""
         from src.validators import validate_capacity_available
@@ -455,6 +489,7 @@ class TestValidatorFunctions:
 class TestServerStartup:
     """Test that the server can be started (using TestClient as proxy)"""
 
+    @pytest.mark.test_id("TC-INFRA-SERVER-001")
     def test_server_can_start_via_test_client(self):
         """Test that the server can be started using TestClient"""
         from fastapi.testclient import TestClient
@@ -466,6 +501,7 @@ class TestServerStartup:
         except Exception as e:
             pytest.fail(f"Failed to create TestClient (server startup simulation failed): {e}")
 
+    @pytest.mark.test_id("TC-INFRA-SERVER-002")
     def test_server_responds_to_requests(self):
         """Test that the server responds to basic requests"""
         from fastapi.testclient import TestClient
@@ -489,6 +525,7 @@ class TestServerStartup:
 class TestCodeQuality:
     """Test code quality and best practices"""
 
+    @pytest.mark.test_id("TC-INFRA-QUALITY-001")
     def test_no_syntax_errors_in_app(self):
         """Test that app.py has no syntax errors"""
         from pathlib import Path
@@ -501,6 +538,7 @@ class TestCodeQuality:
         except py_compile.PyCompileError as e:
             pytest.fail(f"Syntax error in app.py: {e}")
 
+    @pytest.mark.test_id("TC-INFRA-QUALITY-002")
     def test_no_syntax_errors_in_validators(self):
         """Test that validators.py has no syntax errors"""
         from pathlib import Path
@@ -513,6 +551,7 @@ class TestCodeQuality:
         except py_compile.PyCompileError as e:
             pytest.fail(f"Syntax error in validators.py: {e}")
 
+    @pytest.mark.test_id("TC-INFRA-QUALITY-003")
     def test_no_syntax_errors_in_constants(self):
         """Test that constants.py has no syntax errors"""
         from pathlib import Path
@@ -525,6 +564,7 @@ class TestCodeQuality:
         except py_compile.PyCompileError as e:
             pytest.fail(f"Syntax error in constants.py: {e}")
 
+    @pytest.mark.test_id("TC-INFRA-QUALITY-004")
     def test_all_imports_resolve(self):
         """Test that all imports in modules can be resolved"""
         # This test will fail if there are circular imports or missing modules

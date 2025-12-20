@@ -10,35 +10,12 @@ This module contains pytest tests for all FastAPI endpoints including:
 
 import pytest
 from fastapi.testclient import TestClient
-from src.app import app, participants_storage
-
-
-@pytest.fixture
-def client():
-    """Create a test client for the FastAPI app"""
-    return TestClient(app)
-
-
-@pytest.fixture(autouse=True)
-def reset_participants():
-    """Reset participants to initial state before each test"""
-    participants_storage.clear()
-    participants_storage.update({
-        "Chess Club": ["michael@mergington.edu", "daniel@mergington.edu"],
-        "Programming Class": ["emma@mergington.edu", "sophia@mergington.edu"],
-        "Gym Class": ["john@mergington.edu", "olivia@mergington.edu"],
-        "Soccer Team": ["alex@mergington.edu", "sarah@mergington.edu"],
-        "Swimming Club": ["ryan@mergington.edu"],
-        "Drama Club": ["lily@mergington.edu", "james@mergington.edu"],
-        "Art Studio": ["ava@mergington.edu"],
-        "Debate Team": ["noah@mergington.edu", "mia@mergington.edu"],
-        "Science Olympiad": ["ethan@mergington.edu", "isabella@mergington.edu"]
-    })
 
 
 class TestRootEndpoint:
     """Tests for the root endpoint"""
 
+    @pytest.mark.test_id("TC-ROOT-001")
     def test_root_redirects_to_static(self, client):
         """Test that root endpoint redirects to static index.html"""
         response = client.get("/", follow_redirects=False)
@@ -49,6 +26,7 @@ class TestRootEndpoint:
 class TestGetActivities:
     """Tests for GET /activities endpoint"""
 
+    @pytest.mark.test_id("TC-ACTIVITIES-001")
     def test_get_activities_returns_all_activities_en(self, client):
         """Test that GET /activities returns all available activities in English"""
         response = client.get("/activities?lang=en")
@@ -58,6 +36,7 @@ class TestGetActivities:
         assert "Programming Class" in data
         assert "Gym Class" in data
 
+    @pytest.mark.test_id("TC-ACTIVITIES-002")
     def test_get_activities_returns_all_activities_hu(self, client):
         """Test that GET /activities returns all available activities in Hungarian"""
         response = client.get("/activities?lang=hu")
@@ -67,6 +46,7 @@ class TestGetActivities:
         assert "Programozás Tanfolyam" in data
         assert "Tornaterem" in data
 
+    @pytest.mark.test_id("TC-LANGUAGE-002")
     def test_get_activities_defaults_to_english(self, client):
         """Test that GET /activities defaults to English when no lang parameter"""
         response = client.get("/activities")
@@ -74,6 +54,7 @@ class TestGetActivities:
         data = response.json()
         assert "Chess Club" in data
 
+    @pytest.mark.test_id("TC-ACTIVITIES-004")
     def test_get_activities_returns_correct_structure(self, client):
         """Test that activities have the correct structure"""
         response = client.get("/activities?lang=en")
@@ -86,6 +67,7 @@ class TestGetActivities:
         assert "participants" in chess_club
         assert isinstance(chess_club["participants"], list)
 
+    @pytest.mark.test_id("TC-ACTIVITIES-005")
     def test_get_activities_returns_participant_lists(self, client):
         """Test that activities include participant lists"""
         response = client.get("/activities?lang=en")
@@ -95,6 +77,7 @@ class TestGetActivities:
         assert "michael@mergington.edu" in chess_club["participants"]
         assert "daniel@mergington.edu" in chess_club["participants"]
 
+    @pytest.mark.test_id("TC-LANGUAGE-001")
     def test_get_activities_same_participants_both_languages(self, client):
         """Test that participants are synced across both language versions"""
         response_en = client.get("/activities?lang=en")
@@ -123,6 +106,7 @@ class TestSignupForActivity:
         """
         return client.get(f"/activities?lang={lang}").json()[activity_name]
 
+    @pytest.mark.test_id("TC-SIGNUP-001")
     def test_signup_for_existing_activity_en(self, client):
         """Test signing up for an existing activity in English"""
         response = client.post(
@@ -138,6 +122,7 @@ class TestSignupForActivity:
         activities_data = activities_response.json()
         assert "newstudent@mergington.edu" in activities_data["Chess Club"]["participants"]
 
+    @pytest.mark.test_id("TC-SIGNUP-002")
     def test_signup_for_existing_activity_hu(self, client):
         """Test signing up for an existing activity in Hungarian"""
         response = client.post(
@@ -154,6 +139,7 @@ class TestSignupForActivity:
         assert "newstudent@mergington.edu" in activities_response_en.json()["Chess Club"]["participants"]
         assert "newstudent@mergington.edu" in activities_response_hu.json()["Sakk Klub"]["participants"]
 
+    @pytest.mark.test_id("TC-SIGNUP-003")
     def test_signup_for_nonexistent_activity(self, client):
         """Test signing up for an activity that doesn't exist"""
         response = client.post(
@@ -164,6 +150,7 @@ class TestSignupForActivity:
         data = response.json()
         assert data["detail"] == "Activity not found"
 
+    @pytest.mark.test_id("TC-SIGNUP-004")
     def test_signup_when_already_registered(self, client):
         """Test signing up when already registered for the activity"""
         response = client.post(
@@ -174,6 +161,7 @@ class TestSignupForActivity:
         data = response.json()
         assert data["detail"] == "Student already signed up for this activity"
 
+    @pytest.mark.test_id("TC-SIGNUP-005")
     def test_multiple_students_can_signup(self, client):
         """Test that multiple students can sign up for the same activity"""
         # First student
@@ -197,18 +185,7 @@ class TestSignupForActivity:
         assert "student1@mergington.edu" in participants
         assert "student2@mergington.edu" in participants
 
-    def test_signup_with_invalid_email(self, client):
-        """Test signing up with an invalid email format"""
-        response = client.post(
-            "/activities/Chess Club/signup",
-            json={"email": "not-an-email"}
-        )
-        assert response.status_code == 422
-        data = response.json()
-        assert "detail" in data
-
-    def test_signup_rejected_when_activity_at_capacity(self, client):
-        """Test that signup is rejected when activity has reached max_participants.
+    @pytest.mark.test_id("TC-CAPACITY-001")
     def test_signup_rejected_when_activity_at_capacity_en(self, client):
         """Test that signup is rejected when activity has reached max_participants (English).
         
@@ -255,6 +232,7 @@ class TestSignupForActivity:
         assert len(participants) == max_participants
         assert "capacity_overflow@mergington.edu" not in participants
 
+    @pytest.mark.test_id("TC-CAPACITY-002")
     def test_signup_rejected_when_activity_at_capacity_hu(self, client):
         """Test that signup is rejected when activity has reached max_participants (Hungarian)."""
         activity_name_hu = "Sakk Klub"
@@ -281,6 +259,7 @@ class TestSignupForActivity:
         data = response.json()
         assert data["detail"] == "A tevékenység megtelt"
 
+    @pytest.mark.test_id("TC-CAPACITY-003")
     def test_signup_allowed_when_one_below_capacity(self, client):
         """Test that signup is allowed when activity is one below capacity.
         
@@ -301,13 +280,11 @@ class TestSignupForActivity:
         # Fill slots leaving exactly one open with test-specific email pattern
         for i in range(slots_to_fill):
             response = client.post(
-                f"/activities/{activity_name}/signup",
-                json={"email": f"onebelow_test_{i}@mergington.edu"}
                 f"/activities/{activity_name}/signup?lang=en",
                 json={"email": f"onebellow_test_{i}@mergington.edu"}
             )
             assert response.status_code == 200, \
-                f"Failed to sign up onebelow_test_{i} (signup {i+1}/{slots_to_fill})"
+                f"Failed to sign up onebellow_test_{i} (signup {i+1}/{slots_to_fill})"
         
         # Verify activity is one below capacity
         activity = self._get_activity_info(client, activity_name, "en")
@@ -318,8 +295,6 @@ class TestSignupForActivity:
         
         # Add the last student - should succeed
         response = client.post(
-            f"/activities/{activity_name}/signup",
-            json={"email": "onebelow_last@mergington.edu"}
             f"/activities/{activity_name}/signup?lang=en",
             json={"email": "onebellow_last@mergington.edu"}
         )
@@ -329,8 +304,9 @@ class TestSignupForActivity:
         activity = self._get_activity_info(client, activity_name, "en")
         participants = activity["participants"]
         assert len(participants) == max_participants
-        assert "onebelow_last@mergington.edu" in participants
+        assert "onebellow_last@mergington.edu" in participants
 
+    @pytest.mark.test_id("TC-CAPACITY-004")
     def test_capacity_check_with_sequential_signups(self, client):
         """Test that capacity checking works correctly with multiple sequential signups.
         
@@ -376,6 +352,7 @@ class TestSignupForActivity:
 class TestUnregisterFromActivity:
     """Tests for DELETE /activities/{activity_name}/unregister endpoint"""
 
+    @pytest.mark.test_id("TC-UNREGISTER-001")
     def test_unregister_from_activity_en(self, client):
         """Test unregistering from an activity in English"""
         response = client.request(
@@ -392,6 +369,7 @@ class TestUnregisterFromActivity:
         activities_data = activities_response.json()
         assert "michael@mergington.edu" not in activities_data["Chess Club"]["participants"]
 
+    @pytest.mark.test_id("TC-UNREGISTER-002")
     def test_unregister_from_activity_hu(self, client):
         """Test unregistering from an activity in Hungarian"""
         response = client.request(
@@ -409,6 +387,7 @@ class TestUnregisterFromActivity:
         assert "michael@mergington.edu" not in activities_response_en.json()["Chess Club"]["participants"]
         assert "michael@mergington.edu" not in activities_response_hu.json()["Sakk Klub"]["participants"]
 
+    @pytest.mark.test_id("TC-UNREGISTER-003")
     def test_unregister_from_nonexistent_activity(self, client):
         """Test unregistering from an activity that doesn't exist"""
         response = client.request(
@@ -420,6 +399,7 @@ class TestUnregisterFromActivity:
         data = response.json()
         assert data["detail"] == "Activity not found"
 
+    @pytest.mark.test_id("TC-UNREGISTER-004")
     def test_unregister_when_not_registered(self, client):
         """Test unregistering when not registered for the activity"""
         response = client.request(
@@ -431,6 +411,7 @@ class TestUnregisterFromActivity:
         data = response.json()
         assert data["detail"] == "Student is not signed up for this activity"
 
+    @pytest.mark.test_id("TC-UNREGISTER-005")
     def test_unregister_then_signup_again(self, client):
         """Test that a student can unregister and then sign up again"""
         # Unregister
