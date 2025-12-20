@@ -246,7 +246,6 @@ class TestSignupForActivity:
     def test_signup_rejected_when_activity_at_capacity_hu(self, client):
         """Test that signup is rejected when activity has reached max_participants (Hungarian)."""
         activity_name_hu = "Sakk Klub"
-        activity_name_en = "Chess Club"
         activity = self._get_activity_info(client, activity_name_hu, "hu")
         
         initial_count = len(activity["participants"])
