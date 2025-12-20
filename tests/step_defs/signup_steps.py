@@ -5,7 +5,6 @@ Maps Gherkin steps from activity_signup.feature to test code.
 """
 
 from pytest_bdd import scenarios, given, when, then, parsers
-import pytest
 
 
 # Load all scenarios from the feature file

@@ -4,7 +4,6 @@ This module provides pytest-bdd step definitions for UI testing scenarios.
 """
 
 from pytest_bdd import scenarios, given, when, then, parsers
-from playwright.sync_api import Page, expect
 from tests.playwright.pages.activities_page import ActivitiesPage
 import requests
 

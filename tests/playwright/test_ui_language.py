@@ -8,7 +8,6 @@ Tests the bilingual (English/Hungarian) interface including:
 """
 
 import pytest
-from playwright.sync_api import Page, expect
 from tests.playwright.pages.activities_page import ActivitiesPage
 
 

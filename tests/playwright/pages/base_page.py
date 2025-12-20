@@ -4,7 +4,7 @@ This module provides the base class for all Page Objects with common
 navigation, waiting, and utility methods.
 """
 
-from playwright.sync_api import Page, expect
+from playwright.sync_api import Page
 from typing import Optional
 
 

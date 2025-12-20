@@ -14,7 +14,7 @@ import time
 import requests
 import sys
 import os
-from playwright.sync_api import Page, Browser
+from playwright.sync_api import Page
 from tests.playwright.pages.activities_page import ActivitiesPage
 
 
