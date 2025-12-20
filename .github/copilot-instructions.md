@@ -82,6 +82,368 @@ pytest -v
 
 **Test fixture pattern:** `reset_participants` fixture (autouse=True) resets state before each test to ensure isolation.
 
+## Test Documentation Framework
+
+### Overview
+
+This project uses an **AI-discoverable BDD testing framework** with comprehensive documentation ensuring future AI agents and developers understand testing conventions.
+
+**Documentation Structure:**
+- [docs/testing/TEST_STRATEGY.md](../docs/testing/TEST_STRATEGY.md) - Overall testing approach and philosophy
+- [docs/testing/TEST_CASES.md](../docs/testing/TEST_CASES.md) - Presentable test case registry with IDs
+- [docs/testing/TRACEABILITY_MATRIX.md](../docs/testing/TRACEABILITY_MATRIX.md) - Requirements → test case mapping
+
+### Test Organization
+
+**Test Files:**
+- [tests/test_app.py](../tests/test_app.py) - 21 functional tests for API endpoints
+  - `TestRootEndpoint` - Static file redirect
+  - `TestGetActivities` - Activity listing in both languages
+  - `TestSignupForActivity` - Signup logic, capacity enforcement
+  - `TestUnregisterFromActivity` - Unregistration logic
+- [tests/test_infrastructure.py](../tests/test_infrastructure.py) - 40+ infrastructure tests
+  - `TestModuleImports` - Verify all modules can be imported
+  - `TestApplicationCreation` - FastAPI app creation
+  - `TestDataStructures` - Data structure integrity
+  - `TestDependencies` - Required packages available
+  - `TestStaticFiles` - Frontend files exist
+  - `TestServerStartup` - Server can start successfully
+  - `TestCodeQuality` - Syntax and import validation
+- [tests/conftest.py](../tests/conftest.py) - Shared fixtures and markers
+- [tests/features/*.feature](../tests/features/) - BDD Gherkin scenarios
+- [tests/step_defs/*.py](../tests/step_defs/) - BDD step definitions
+
+### Test ID Convention
+
+**CRITICAL:** All tests MUST have `@pytest.mark.test_id()` decorator.
+
+**Format:** `TC-[AREA]-[NUMBER]`
+
+**Area codes:**
+- `SIGNUP` - Activity signup
+- `UNREGISTER` - Activity unregistration
+- `ACTIVITIES` - Activity listing
+- `CAPACITY` - Capacity enforcement
+- `LANGUAGE` - Bilingual functionality
+- `INFRA-IMPORT`, `INFRA-APP`, `INFRA-DATA`, etc. - Infrastructure tests
+
+**Example:**
+```python
+@pytest.mark.test_id("TC-SIGNUP-001")
+@pytest.mark.functional
+@pytest.mark.capacity
+def test_signup_rejected_when_activity_at_capacity_en(client):
+    """Test that signup is rejected when activity has reached max_participants."""
+    # Test implementation
+```
+
+### Pytest Markers
+
+Use markers to categorize and run specific test subsets:
+
+```bash
+# Run only functional tests
+pytest -m functional
+
+# Run only capacity tests
+pytest -m capacity
+
+# Run infrastructure tests first (recommended)
+pytest -m infrastructure && pytest -m functional
+
+# Run BDD scenarios
+pytest -m bdd
+```
+
+**Available markers:**
+- `@pytest.mark.test_id("TC-XXX-NNN")` - **Required** test identifier
+- `@pytest.mark.functional` - Functional API tests
+- `@pytest.mark.infrastructure` - Infrastructure validation tests
+- `@pytest.mark.capacity` - Capacity enforcement tests
+- `@pytest.mark.language` - Bilingual functionality tests
+- `@pytest.mark.bdd` - BDD scenario tests
+
+### BDD Testing
+
+**When to use Gherkin `.feature` files:**
+- User-facing features requiring stakeholder review
+- Complex business logic needing documentation
+- Acceptance criteria validation
+
+**Location:** [tests/features/](../tests/features/)
+- `activity_signup.feature` - Signup scenarios
+- `capacity_management.feature` - Capacity enforcement scenarios
+- `language_support.feature` - Bilingual functionality scenarios
+
+**Step definitions:** [tests/step_defs/](../tests/step_defs/)
+
+### Test Execution Strategies
+
+```bash
+# Run all tests
+pytest
+
+# Run only functional tests
+pytest tests/test_app.py
+
+# Run only infrastructure tests (recommended before debugging)
+pytest tests/test_infrastructure.py
+
+# Run specific test class
+pytest tests/test_app.py::TestSignupForActivity
+
+# Run specific test by ID
+pytest -k "TC_SIGNUP_001"
+
+# Run with coverage report
+pytest --cov=src --cov-report=html
+
+# Stop on first failure
+pytest -x
+```
+
+### Infrastructure Tests Purpose
+
+**ALWAYS run infrastructure tests first** before debugging or starting the server:
+
+```bash
+pytest tests/test_infrastructure.py
+```
+
+These tests catch:
+- `ModuleNotFoundError` (missing imports)
+- Syntax errors in Python files
+- Missing dependencies
+- Data structure issues
+- Server startup problems
+
+This prevents common "run and debug" errors.
+
+### Pre-Commit Hook
+
+**Setup (required for contributors):**
+```bash
+cp .githooks/pre-commit .git/hooks/pre-commit
+chmod +x .git/hooks/pre-commit
+```
+
+**The hook validates:**
+1. All test functions have `@pytest.mark.test_id()` decorators
+2. Test IDs follow `TC-[AREA]-[NUMBER]` format
+3. No duplicate test IDs exist
+4. All tests pass before commit
+5. No syntax errors in code
+6. Coverage threshold met (warning only)
+
+**Bypass (not recommended):**
+```bash
+git commit --no-verify
+```
+
+### Adding New Tests
+
+**Required steps:**
+
+1. **Add test function with decorators:**
+```python
+@pytest.mark.test_id("TC-SIGNUP-006")
+@pytest.mark.functional
+def test_new_feature(client):
+    """Test description."""
+    # Implementation
+```
+
+2. **Update [docs/testing/TEST_CASES.md](../docs/testing/TEST_CASES.md):**
+   - Add entry to appropriate section
+   - Include: ID, title, description, preconditions, steps, expected results
+
+3. **Update [docs/testing/TRACEABILITY_MATRIX.md](../docs/testing/TRACEABILITY_MATRIX.md):**
+   - Link test to requirement/user story
+   - Update coverage statistics
+
+4. **For user-facing features, add BDD scenario:**
+   - Create/update `.feature` file in `tests/features/`
+   - Add step definitions in `tests/step_defs/`
+
+5. **Run pre-commit hook to validate:**
+```bash
+.githooks/pre-commit
+```
+
+### Test Helper Patterns
+
+**Helper methods in test classes:**
+```python
+def _get_activity_info(self, client, activity_name, lang="en"):
+    """Fetch activity state from API."""
+    return client.get(f"/activities?lang={lang}").json()[activity_name]
+```
+
+**Class constants for test parameters:**
+```python
+class TestSignupForActivity:
+    OVERFLOW_TEST_COUNT = 3  # Number of overflow attempts
+```
+
+**Test-specific email patterns:**
+```python
+# Use unique patterns to avoid cross-test conflicts
+emails = [f"capacity_test_{i}@mergington.edu" for i in range(N)]
+```
+
+### Coverage Requirements
+
+**Minimum thresholds:**
+- Overall: 80%
+- Service layer: 90%
+- API endpoints: 100%
+- Critical paths (signup/capacity): 100%
+
+**Generate coverage report:**
+```bash
+pytest --cov=src --cov-report=html --cov-report=term
+open htmlcov/index.html
+```
+
+### Maintainability for AI Agents
+
+**IMPORTANT:** When working as an AI agent on this codebase:
+
+1. **Before adding tests:**
+   - Read this section first
+   - Review [docs/testing/TEST_STRATEGY.md](../docs/testing/TEST_STRATEGY.md)
+   - Check [docs/testing/TEST_CASES.md](../docs/testing/TEST_CASES.md) for next available test ID
+
+2. **When adding a test:**
+   - Add `@pytest.mark.test_id("TC-AREA-NNN")` decorator
+   - Add appropriate category markers
+   - Update TEST_CASES.md with new entry
+   - Update TRACEABILITY_MATRIX.md if implementing a requirement
+
+3. **For user-facing features:**
+   - Create `.feature` file in `tests/features/`
+   - Add step definitions in `tests/step_defs/`
+
+4. **Before committing:**
+   - Run `pytest -v` to ensure all tests pass
+   - Pre-commit hook will validate automatically
+
+## UI Testing Gotchas (Critical for AI Agents)
+
+### Subprocess Isolation - MOST IMPORTANT
+
+⚠️ **CRITICAL**: The FastAPI server runs in `subprocess.Popen`, creating a **separate Python process**.
+
+**What this means:**
+- Test process and server process have **completely separate memory spaces**
+- Direct manipulation of `participants_storage` from tests **does not work**
+- State reset **must use HTTP API calls**, not direct memory access
+
+**Common Mistake (WRONG):**
+```python
+# This only modifies test process memory, NOT server memory!
+from src.app import participants_storage
+participants_storage["Chess Club"] = []  # Server unchanged!
+```
+
+**Correct Approach:**
+```python
+# Use HTTP API to modify server state
+import requests
+requests.delete(
+    "http://localhost:8000/activities/Chess Club/unregister",
+    json={"email": "student@example.com"}
+)
+```
+
+### Performance: Sequential vs Parallel API Calls
+
+**Problem:** Sequential API calls are too slow for test suite (10+ minutes)
+
+**Solution:** Use ThreadPoolExecutor for parallel API calls (2-3s overhead)
+
+```python
+from concurrent.futures import ThreadPoolExecutor
+
+# Calculate minimal diff first
+to_remove = current_participants - desired_participants
+to_add = desired_participants - current_participants
+
+# Execute operations in PARALLEL
+with ThreadPoolExecutor(max_workers=10) as executor:
+    futures = [executor.submit(api_call, ...) for each operation]
+    for future in as_completed(futures):
+        future.result()  # Wait for completion
+```
+
+### Test Isolation Debugging
+
+**Symptom:** Tests pass individually but fail in suite
+
+**Root Cause:** State not properly reset between tests
+
+**Diagnostic:**
+```bash
+# Test passes alone
+pytest tests/playwright/test_ui_capacity.py::test_signup_shows_error_when_full -v  # ✅
+
+# But fails in suite
+pytest tests/playwright/test_ui_capacity.py -v  # ❌
+```
+
+**Solution:** Verify `reset_participants` autouse fixture uses API calls, not direct memory access
+
+### Async UI Update Race Conditions
+
+**Problem:** Tests check UI state before JavaScript finishes updating
+
+**Solution:** Add wait/retry logic in Page Object methods
+
+```python
+def has_participant(self, activity_name: str, email: str, timeout: int = 5000) -> bool:
+    self.page.wait_for_timeout(1000)  # Initial wait
+    for attempt in range(3):  # Retry up to 3 times
+        participants = self.get_participants(activity_name)
+        if email in participants:
+            return True
+        if attempt < 2:
+            self.page.wait_for_timeout(1000)  # Wait between retries
+    return False
+```
+
+### localStorage Clearing
+
+**Best Practice:** Clear localStorage in `ActivitiesPage.load()` method, not in separate fixture
+
+```python
+def load(self, clear_storage: bool = True) -> None:
+    if clear_storage:
+        self.navigate_to("/")
+        self.page.evaluate("() => localStorage.clear()")
+        self.page.reload()
+    else:
+        self.navigate_to("/")
+    self.wait_for_activities_loaded()
+```
+
+### Server Health Check
+
+**Always verify server is ready** before running tests:
+
+```python
+for attempt in range(30):
+    try:
+        response = requests.get("http://localhost:8000/activities", timeout=2)
+        if response.status_code == 200:
+            break
+    except:
+        if attempt == 29:
+            raise RuntimeError("Server failed to start")
+        time.sleep(1)
+```
+
+---
+
 ## Project-Specific Conventions
 
 ### Email Validation
@@ -161,8 +523,36 @@ assert "test@example.com" in activities_en["Chess Club"]["participants"]
 
 ## Key Files
 
+### Application Code
 - [src/app.py](../src/app.py) - FastAPI application with dual-language logic
+- [src/service.py](../src/service.py) - ActivityService business logic layer
+- [src/models.py](../src/models.py) - Pydantic models for request/response
+- [src/validators.py](../src/validators.py) - Validation utilities
+- [src/exceptions.py](../src/exceptions.py) - Custom exception definitions
+- [src/constants.py](../src/constants.py) - Application constants
 - [src/static/app.js](../src/static/app.js) - Frontend translation and API calls
-- [tests/test_app.py](../tests/test_app.py) - Comprehensive test suite with capacity/language tests
-- [API_MIGRATION.md](../API_MIGRATION.md) - Breaking changes documentation (query params → request body)
-- [requirements.txt](../requirements.txt) - Dependencies including `pydantic[email]`
+- [src/static/index.html](../src/static/index.html) - Web UI
+- [src/static/styles.css](../src/static/styles.css) - Styling
+
+### Testing
+- [tests/test_app.py](../tests/test_app.py) - 21 functional API tests
+- [tests/test_infrastructure.py](../tests/test_infrastructure.py) - 40+ infrastructure tests
+- [tests/conftest.py](../tests/conftest.py) - Shared fixtures and markers
+- [tests/features/*.feature](../tests/features/) - BDD Gherkin scenarios
+- [tests/step_defs/*.py](../tests/step_defs/) - BDD step definitions
+- [pytest.ini](../pytest.ini) - Pytest configuration
+
+### Documentation
+- [docs/testing/TEST_STRATEGY.md](../docs/testing/TEST_STRATEGY.md) - Testing philosophy and approach
+- [docs/testing/TEST_CASES.md](../docs/testing/TEST_CASES.md) - Test case registry with IDs
+- [docs/testing/TRACEABILITY_MATRIX.md](../docs/testing/TRACEABILITY_MATRIX.md) - Requirements traceability
+- [API_MIGRATION.md](../API_MIGRATION.md) - API breaking changes (query params → request body)
+- [CONTRIBUTING.md](../CONTRIBUTING.md) - Development setup and guidelines
+- [README.md](../README.md) - Project overview
+
+### Configuration
+- [requirements.txt](../requirements.txt) - Python dependencies including pytest-bdd, pytest-cov
+- [.githooks/pre-commit](../.githooks/pre-commit) - Pre-commit validation hook
+- [.gitignore](../.gitignore) - Git ignore patterns
+
+**Last Updated:** December 20, 2025

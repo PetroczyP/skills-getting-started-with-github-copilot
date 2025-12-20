@@ -1,0 +1,200 @@
+#!/bin/bash
+#
+# Pre-commit hook for Mergington High School Activities API
+#
+# This hook validates:
+# 1. All test functions have @pytest.mark.test_id() decorators
+# 2. Test IDs follow the correct format: TC-[AREA]-[NUMBER]
+# 3. No duplicate test IDs exist
+# 4. All tests pass before commit
+# 5. Code meets quality standards
+#
+# To install: cp .githooks/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit
+# To bypass: git commit --no-verify
+
+set -e
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+echo "🔍 Running pre-commit checks..."
+
+# ============================================================================
+# 1. Check for test ID decorators
+# ============================================================================
+
+echo "📝 Checking test ID decorators..."
+
+# Find all test functions in test files (API tests and UI tests)
+test_functions=$(grep -rn "def test_" tests/test_app.py tests/test_infrastructure.py tests/playwright/test_*.py 2>/dev/null || true)
+
+if [ ! -z "$test_functions" ]; then
+    missing_ids=()
+    
+    while IFS= read -r line; do
+        # Extract file and line number
+        file=$(echo "$line" | cut -d':' -f1)
+        line_num=$(echo "$line" | cut -d':' -f2)
+        test_name=$(echo "$line" | grep -oP 'def \K\w+')
+        
+        # Check if previous non-empty line has @pytest.mark.test_id
+        prev_line=$((line_num - 1))
+        has_id=$(sed -n "${prev_line}p" "$file" | grep "@pytest.mark.test_id" || true)
+        
+        if [ -z "$has_id" ]; then
+            # Check a few lines up in case there are other decorators
+            for offset in 2 3 4; do
+                check_line=$((line_num - offset))
+                has_id=$(sed -n "${check_line}p" "$file" | grep "@pytest.mark.test_id" || true)
+                if [ ! -z "$has_id" ]; then
+                    break
+                fi
+            done
+        fi
+        
+        if [ -z "$has_id" ]; then
+            missing_ids+=("$file:$line_num - $test_name")
+        fi
+    done <<< "$test_functions"
+    
+    if [ ${#missing_ids[@]} -gt 0 ]; then
+        echo -e "${RED}❌ ERROR: Test functions missing @pytest.mark.test_id() decorator:${NC}"
+        printf '%s\n' "${missing_ids[@]}"
+        echo ""
+        echo "Add decorators like: @pytest.mark.test_id(\"TC-AREA-001\")"
+        echo "See docs/testing/TEST_CASES.md for ID conventions."
+        exit 1
+    fi
+fi
+
+echo -e "${GREEN}✅ All tests have ID decorators${NC}"
+
+# ============================================================================
+# 2. Validate test ID format
+# ============================================================================
+
+echo "🔍 Validating test ID format..."
+
+# Extract all test IDs
+test_ids=$(grep -rh "@pytest.mark.test_id" tests/ 2>/dev/null | grep -oP 'test_id\("\K[^"]+' || true)
+
+if [ ! -z "$test_ids" ]; then
+    invalid_ids=()
+    
+    while IFS= read -r test_id; do
+        # Check format: TC-[AREA]-[NUMBER] where AREA can have hyphens
+        if ! echo "$test_id" | grep -qP '^TC-[A-Z][A-Z-]+-[0-9]{3}$'; then
+            invalid_ids+=("$test_id")
+        fi
+    done <<< "$test_ids"
+    
+    if [ ${#invalid_ids[@]} -gt 0 ]; then
+        echo -e "${RED}❌ ERROR: Invalid test ID format:${NC}"
+        printf '%s\n' "${invalid_ids[@]}"
+        echo ""
+        echo "Test IDs must follow pattern: TC-[AREA]-[NUMBER]"
+        echo "Examples: TC-SIGNUP-001, TC-INFRA-IMPORT-001, TC-UI-LANG-001"
+        exit 1
+    fi
+fi
+
+echo -e "${GREEN}✅ Test ID format valid${NC}"
+
+# ============================================================================
+# 3. Check for duplicate test IDs
+# ============================================================================
+
+echo "🔎 Checking for duplicate test IDs..."
+
+if [ ! -z "$test_ids" ]; then
+    duplicates=$(echo "$test_ids" | sort | uniq -d)
+    
+    if [ ! -z "$duplicates" ]; then
+        echo -e "${RED}❌ ERROR: Duplicate test IDs found:${NC}"
+        echo "$duplicates"
+        echo ""
+        echo "Each test must have a unique ID. Check docs/testing/TEST_CASES.md"
+        exit 1
+    fi
+fi
+
+echo -e "${GREEN}✅ No duplicate test IDs${NC}"
+
+# ============================================================================
+# 4. Run pytest to ensure tests pass
+# ============================================================================
+
+echo "🧪 Running tests..."
+
+# Run API tests only (skip UI tests in pre-commit for speed)
+if ! pytest tests/test_app.py tests/test_infrastructure.py --tb=short -q 2>&1; then
+    echo -e "${RED}❌ ERROR: API tests failed${NC}"
+    echo ""
+    echo "Fix failing tests before committing."
+    echo "Run 'pytest -v' for detailed output."
+    echo ""
+    echo "Note: UI tests are skipped in pre-commit for speed."
+    echo "Run './scripts/run_ui_tests.sh' to test UI manually."
+    exit 1
+fi
+
+echo -e "${GREEN}✅ All API tests passed${NC}"
+
+# ============================================================================
+# 5. Optional: Check coverage (warning only)
+# ============================================================================
+
+echo "📊 Checking test coverage..."
+
+coverage_output=$(pytest --cov=src --cov-report=term --tb=no -q 2>&1 | grep "TOTAL" || true)
+
+if [ ! -z "$coverage_output" ]; then
+    coverage_percent=$(echo "$coverage_output" | awk '{print $(NF-1)}' | sed 's/%//')
+    threshold=80
+    
+    if [ ! -z "$coverage_percent" ]; then
+        if (( $(echo "$coverage_percent < $threshold" | bc -l) )); then
+            echo -e "${YELLOW}⚠️  WARNING: Coverage is ${coverage_percent}% (below ${threshold}% threshold)${NC}"
+            echo "Consider adding more tests to improve coverage."
+        else
+            echo -e "${GREEN}✅ Coverage: ${coverage_percent}%${NC}"
+        fi
+    fi
+fi
+
+# ============================================================================
+# 6. Check Python code formatting (optional)
+# ============================================================================
+
+echo "🎨 Checking code style..."
+
+# Check for obvious syntax errors
+python_files=$(git diff --cached --name-only --diff-filter=ACM | grep "\.py$" || true)
+
+if [ ! -z "$python_files" ]; then
+    for file in $python_files; do
+        if [ -f "$file" ]; then
+            if ! python -m py_compile "$file" 2>/dev/null; then
+                echo -e "${RED}❌ ERROR: Syntax error in $file${NC}"
+                exit 1
+            fi
+        fi
+    done
+fi
+
+echo -e "${GREEN}✅ Code style check passed${NC}"
+
+# ============================================================================
+# Summary
+# ============================================================================
+
+echo ""
+echo -e "${GREEN}═══════════════════════════════════════${NC}"
+echo -e "${GREEN}✅ All pre-commit checks passed!${NC}"
+echo -e "${GREEN}═══════════════════════════════════════${NC}"
+echo ""
+
+exit 0

@@ -1,6 +1,82 @@
-# Getting Started with GitHub Copilot
+# Getting Started with GitHub Copilot - Mergington High School Activities API
 
 <img src="https://octodex.github.com/images/Professortocat_v2.png" align="right" height="200px" />
+
+## Overview
+
+A bilingual (English/Hungarian) FastAPI application for managing high school extracurricular activities. Students can view activities and register/unregister via a web UI or REST API.
+
+**Tech Stack:** FastAPI, Python 3.9+, vanilla JavaScript, Playwright
+
+---
+
+## Quick Start
+
+### Setup
+
+```bash
+# Clone repository
+git clone https://github.com/PetroczyP/skills-getting-started-with-github-copilot.git
+cd skills-getting-started-with-github-copilot
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Run server
+cd src && uvicorn app:app --reload
+```
+
+Access:
+- **Web UI:** http://localhost:8000/
+- **API Docs:** http://localhost:8000/docs
+
+---
+
+## Testing
+
+This project has **91 automated tests** covering API endpoints and UI workflows.
+
+### Run API Tests
+```bash
+# All API tests
+pytest tests/test_app.py tests/test_infrastructure.py -v
+
+# With coverage
+pytest --cov=src --cov-report=html
+```
+
+### Run UI Tests (Playwright)
+```bash
+# Setup (one-time)
+./scripts/setup_venv.sh
+
+# Run all UI tests (all browsers)
+./scripts/run_ui_tests.sh
+
+# Debug mode (visible browser, slow motion)
+./scripts/run_ui_tests.sh --debug
+```
+
+**Test Documentation:**
+- [Test Strategy](docs/testing/TEST_STRATEGY.md) - Overall approach
+- [Test Cases](docs/testing/TEST_CASES.md) - 91 test case registry
+- [Playwright Guide](docs/PLAYWRIGHT_IMPLEMENTATION.md) - UI testing setup
+- [Contributing](CONTRIBUTING.md) - How to add tests
+
+---
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for:
+- Development setup
+- Writing tests (API and UI)
+- Page Object Model guidelines
+- Pre-commit hooks
+- Commit conventions
+
+---
+
+## Original Exercise
 
 Hey PetroczyP!
 
