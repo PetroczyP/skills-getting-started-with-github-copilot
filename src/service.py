@@ -84,9 +84,6 @@ class ActivityService:
         """
         en_name = self.translate_activity_name(activity_name, lang)
         
-        if en_name not in self.activities_en:
-            raise ActivityNotFoundError("Activity not found", activity_name)
-        
         # Validate activity exists in participant storage for consistency
         if en_name not in self.participants_storage:
             raise ActivityNotFoundError("Activity not found", activity_name)
