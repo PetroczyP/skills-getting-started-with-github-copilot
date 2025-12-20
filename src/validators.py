@@ -7,7 +7,7 @@ This module provides validation functions for:
 - Activity name translation
 """
 
-from typing import Dict, Any, Tuple
+from typing import Dict, Any
 from fastapi import HTTPException
 
 from src.constants import (
