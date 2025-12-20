@@ -6,7 +6,7 @@ This module encapsulates business logic for:
 - Language translation
 """
 
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List
 from src.models import ActivityDetails
 from src.exceptions import (
     ActivityNotFoundError,
