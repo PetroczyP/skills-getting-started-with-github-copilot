@@ -1,4 +1,5 @@
 // Translation dictionaries
+const currentYear = new Date().getFullYear();
 const translations = {
   en: {
     "school-name": "Mergington High School",
@@ -11,7 +12,7 @@ const translations = {
     "select-activity": "-- Select an activity --",
     "signup-button": "Sign Up",
     "loading": "Loading activities...",
-    "footer-text": `© ${new Date().getFullYear()} Mergington High School`,
+    "footer-text": `© ${currentYear} Mergington High School`,
     "schedule": "Schedule:",
     "availability": "Availability:",
     "spots-left": "spots left",
@@ -36,7 +37,7 @@ const translations = {
     "select-activity": "-- Válassz egy tevékenységet --",
     "signup-button": "Jelentkezés",
     "loading": "Tevékenységek betöltése...",
-    "footer-text": `© ${new Date().getFullYear()} Mergington Középiskola`,
+    "footer-text": `© ${currentYear} Mergington Középiskola`,
     "schedule": "Időpont:",
     "availability": "Elérhetőség:",
     "spots-left": "hely maradt",
