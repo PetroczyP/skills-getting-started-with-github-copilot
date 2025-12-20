@@ -20,7 +20,6 @@ configuration and import issues early in the development cycle.
 """
 
 import pytest
-import sys
 from pathlib import Path
 
 
