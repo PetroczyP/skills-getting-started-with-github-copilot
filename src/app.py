@@ -159,6 +159,7 @@ def signup_for_activity(activity_name: str, request: SignupRequest) -> Dict[str,
     Raises:
         HTTPException: 404 if the activity does not exist.
         HTTPException: 400 if the student is already signed up for the activity.
+        HTTPException: 400 if the activity is full.
         HTTPException: 422 if the email format is invalid.
     
     Example:
