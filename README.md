@@ -6,7 +6,7 @@
 
 A bilingual (English/Hungarian) FastAPI application for managing high school extracurricular activities. Students can view activities and register/unregister via a web UI or REST API.
 
-**Tech Stack:** FastAPI, Python 3.9+, vanilla JavaScript, Playwright
+**Tech Stack:** FastAPI, Python 3.10+, vanilla JavaScript, Playwright
 
 ---
 

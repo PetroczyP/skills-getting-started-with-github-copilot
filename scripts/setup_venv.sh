@@ -26,10 +26,10 @@ echo ""
 # Check Python version
 echo -e "${YELLOW}Checking Python version...${NC}"
 python_version=$(python3 --version 2>&1 | awk '{print $2}')
-required_version="3.9"
+required_version="3.10"
 
 if [ "$(printf '%s\n' "$required_version" "$python_version" | sort -V | head -n1)" != "$required_version" ]; then 
-    echo -e "${RED}ERROR: Python 3.9 or higher required. Found: $python_version${NC}"
+    echo -e "${RED}ERROR: Python 3.10 or higher required. Found: $python_version${NC}"
     exit 1
 fi
 

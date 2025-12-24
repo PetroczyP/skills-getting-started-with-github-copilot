@@ -31,7 +31,7 @@ Added:
 
 #### Virtual Environment Setup (scripts/setup_venv.sh)
 - Automated venv creation and activation
-- Python version check (3.9+)
+- Python version check (3.10+)
 - Dependency installation
 - Playwright browser installation (chromium, firefox, webkit)
 - Colored output and verification steps
