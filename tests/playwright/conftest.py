@@ -26,9 +26,16 @@ from tests.playwright.pages.activities_page import ActivitiesPage
 def validate_venv():
     """Validate that tests are running in a virtual environment.
     
+    Skips validation in CI environments (GitHub Actions, etc.)
+    
     Raises:
-        RuntimeError: If not running in a virtual environment
+        RuntimeError: If not running in a virtual environment (local development only)
     """
+    # Skip venv check in CI environments
+    if os.getenv("CI") or os.getenv("GITHUB_ACTIONS"):
+        print("✓ Running in CI environment - skipping venv check")
+        return
+    
     if not hasattr(sys, 'prefix') or sys.prefix == sys.base_prefix:
         raise RuntimeError(
             "❌ Playwright tests must run in a virtual environment!\n"
