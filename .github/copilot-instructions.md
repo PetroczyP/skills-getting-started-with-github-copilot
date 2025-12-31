@@ -116,6 +116,25 @@ pytest tests/test_app.py tests/test_infrastructure.py -v && ./scripts/run_ui_tes
 
 **Test fixture pattern:** `reset_participants` fixture (autouse=True) resets state before each test to ensure isolation.
 
+**Race Condition Tests:**
+
+```bash
+# Run race condition tests (6 tests: TC-RACE-001 through TC-RACE-006)
+pytest -m concurrency -v
+
+# With metrics collection
+RACE_TEST_METRICS=true pytest -m concurrency -v
+
+# Analyze race metrics
+python scripts/analyze_race_metrics.py --verbose
+
+# Docker cross-platform testing
+docker build -f Dockerfile.test -t api-tests .
+docker run --rm api-tests pytest -m concurrency -v
+```
+
+See [docs/testing/RACE_CONDITION_TESTING.md](../docs/testing/RACE_CONDITION_TESTING.md) for comprehensive guide.
+
 ## Test Documentation Framework
 
 ### Overview
@@ -159,6 +178,7 @@ This project uses an **AI-discoverable BDD testing framework** with comprehensiv
 - `ACTIVITIES` - Activity listing
 - `CAPACITY` - Capacity enforcement
 - `LANGUAGE` - Bilingual functionality
+- `RACE` - Race condition/concurrency tests
 - `INFRA-IMPORT`, `INFRA-APP`, `INFRA-DATA`, etc. - Infrastructure tests
 
 **Example:**
@@ -194,6 +214,9 @@ pytest -m bdd
 - `@pytest.mark.functional` - Functional API tests
 - `@pytest.mark.infrastructure` - Infrastructure validation tests
 - `@pytest.mark.capacity` - Capacity enforcement tests
+- `@pytest.mark.slow` - Tests taking >0.2s (race condition tests)
+- `@pytest.mark.concurrency` - Concurrent execution tests
+- `@pytest.mark.flaky(reruns=N)` - Retry on failure N times
 - `@pytest.mark.language` - Bilingual functionality tests
 - `@pytest.mark.bdd` - BDD scenario tests
 
@@ -569,14 +592,20 @@ assert "test@example.com" in activities_en["Chess Club"]["participants"]
 - [src/static/styles.css](../src/static/styles.css) - Styling
 
 ### Testing
-- [tests/test_app.py](../tests/test_app.py) - 21 functional API tests
+- [tests/test_app.py](../tests/test_app.py) - 27 functional API tests (21 base + 6 race condition tests)
 - [tests/test_infrastructure.py](../tests/test_infrastructure.py) - 40+ infrastructure tests
 - [tests/conftest.py](../tests/conftest.py) - Shared fixtures and markers
+- [tests/race_config.py](../tests/race_config.py) - Race condition test configuration
+- [tests/race_metrics.py](../tests/race_metrics.py) - RaceMetricsCollector for timing data
 - [tests/features/*.feature](../tests/features/) - BDD Gherkin scenarios
 - [tests/step_defs/*.py](../tests/step_defs/) - BDD step definitions
 - [pytest.ini](../pytest.ini) - Pytest configuration
+- [scripts/analyze_race_metrics.py](../scripts/analyze_race_metrics.py) - Metrics analysis tool
+- [scripts/run_docker_tests.sh](../scripts/run_docker_tests.sh) - Docker test runner
 
 ### Documentation
+- [docs/testing/RACE_CONDITION_TESTING.md](../docs/testing/RACE_CONDITION_TESTING.md) - Race condition test guide
+- [docs/testing/DOCKER_TESTING.md](../docs/testing/DOCKER_TESTING.md) - Cross-platform Docker testing
 - [docs/testing/TEST_STRATEGY.md](../docs/testing/TEST_STRATEGY.md) - Testing philosophy and approach
 - [docs/testing/TEST_CASES.md](../docs/testing/TEST_CASES.md) - Test case registry with IDs
 - [docs/testing/TRACEABILITY_MATRIX.md](../docs/testing/TRACEABILITY_MATRIX.md) - Requirements traceability
@@ -585,8 +614,11 @@ assert "test@example.com" in activities_en["Chess Club"]["participants"]
 - [README.md](../README.md) - Project overview
 
 ### Configuration
-- [requirements.txt](../requirements.txt) - Python dependencies including pytest-bdd, pytest-cov
+- [requirements.txt](../requirements.txt) - Python dependencies (pytest, pytest-rerunfailures)
+- [pytest.ini](../pytest.ini) - Pytest markers and configuration
 - [.githooks/pre-commit](../.githooks/pre-commit) - Pre-commit validation hook
 - [.gitignore](../.gitignore) - Git ignore patterns
+- [Dockerfile.test](../Dockerfile.test) - Docker image for cross-platform testing
+- [.dockerignore](../.dockerignore) - Docker build context exclusions
 
-**Last Updated:** December 20, 2025
+**Last Updated:** December 31, 2025

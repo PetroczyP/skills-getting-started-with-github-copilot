@@ -34,12 +34,15 @@ Access:
 
 ## Testing
 
-This project has **91 automated tests** covering API endpoints and UI workflows.
+This project has **97 automated tests** covering API endpoints, UI workflows, and concurrent race conditions.
 
 ### Run API Tests
 ```bash
 # All API tests
 pytest tests/test_app.py tests/test_infrastructure.py -v
+
+# Race condition tests
+pytest -m concurrency -v
 
 # With coverage
 pytest --cov=src --cov-report=html
@@ -57,9 +60,21 @@ pytest --cov=src --cov-report=html
 ./scripts/run_ui_tests.sh --debug
 ```
 
+### Docker Testing (Cross-Platform)
+```bash
+# Run tests in Linux container
+docker build -f Dockerfile.test -t api-tests .
+docker run --rm api-tests pytest -m concurrency -v
+
+# Or use the automated script
+./scripts/run_docker_tests.sh
+```
+
 **Test Documentation:**
 - [Test Strategy](docs/testing/TEST_STRATEGY.md) - Overall approach
-- [Test Cases](docs/testing/TEST_CASES.md) - 91 test case registry
+- [Test Cases](docs/testing/TEST_CASES.md) - 97 test case registry
+- [Race Condition Testing](docs/testing/RACE_CONDITION_TESTING.md) - Concurrency test guide
+- [Docker Testing](docs/testing/DOCKER_TESTING.md) - Cross-platform testing
 - [Playwright Guide](docs/PLAYWRIGHT_IMPLEMENTATION.md) - UI testing setup
 - [Contributing](CONTRIBUTING.md) - How to add tests
 

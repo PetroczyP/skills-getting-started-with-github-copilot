@@ -1,8 +1,8 @@
 # Test Case Registry - Mergington High School Activities API
 
-**Last Updated:** December 20, 2025  
-**Total Test Cases:** 91  
-**Automated:** 91 (100%)
+**Last Updated:** December 28, 2025  
+**Total Test Cases:** 97  
+**Automated:** 97 (100%)
 
 ---
 
@@ -14,12 +14,13 @@
 4. [Activity Unregister Tests](#activity-unregister-tests)
 5. [Capacity Management Tests](#capacity-management-tests)
 6. [Language Support Tests](#language-support-tests)
-7. [Infrastructure Tests](#infrastructure-tests)
-8. [UI Language Switching Tests](#ui-language-switching-tests)
-9. [UI Signup Tests](#ui-signup-tests)
-10. [UI Unregister Tests](#ui-unregister-tests)
-11. [UI Capacity Tests](#ui-capacity-tests)
-12. [UI Display Tests](#ui-display-tests)
+7. [Race Condition Tests](#race-condition-tests)
+8. [Infrastructure Tests](#infrastructure-tests)
+9. [UI Language Switching Tests](#ui-language-switching-tests)
+10. [UI Signup Tests](#ui-signup-tests)
+11. [UI Unregister Tests](#ui-unregister-tests)
+12. [UI Capacity Tests](#ui-capacity-tests)
+13. [UI Display Tests](#ui-display-tests)
 
 ---
 
@@ -262,6 +263,212 @@
 |---------|-------|----------|--------|-----------|----------|
 | TC-LANGUAGE-001 | Participants synced across languages | P1 | ✅ Active | ✅ Yes | [test_app.py::TestGetActivities::test_get_activities_same_participants_both_languages](../../tests/test_app.py) |
 | TC-LANGUAGE-002 | English default language | P2 | ✅ Active | ✅ Yes | [test_app.py::TestGetActivities::test_get_activities_defaults_to_english](../../tests/test_app.py) |
+
+---
+
+## Race Condition Tests
+
+| Test ID | Title | Priority | Status | Automated | Location |
+|---------|-------|----------|--------|-----------|----------|
+| TC-RACE-001 | Single spot race (10 threads, 1 slot) | P1 | ✅ Active | ✅ Yes | [test_app.py::TestRaceConditions::test_concurrent_signup_single_spot_race](../../tests/test_app.py) |
+| TC-RACE-002 | Multiple spots race (10 threads, 3 slots) | P1 | ✅ Active | ✅ Yes | [test_app.py::TestRaceConditions::test_concurrent_signup_multiple_spots_race](../../tests/test_app.py) |
+| TC-RACE-003 | Cross-language race (5 EN + 5 HU) | P1 | ✅ Active | ✅ Yes | [test_app.py::TestRaceConditions::test_concurrent_signup_cross_language_race](../../tests/test_app.py) |
+| TC-RACE-004 | Signup + unregister chaos (15 ops) | P1 | ✅ Active | ✅ Yes | [test_app.py::TestRaceConditions::test_concurrent_signup_and_unregister_chaos](../../tests/test_app.py) |
+| TC-RACE-005 | Tight timing stress (no barrier) | P1 | ✅ Active | ✅ Yes | [test_app.py::TestRaceConditions::test_concurrent_signup_tight_timing_stress](../../tests/test_app.py) |
+| TC-RACE-006 | Parameterized thread count (5/10/20) | P1 | ✅ Active | ✅ Yes | [test_app.py::TestRaceConditions::test_concurrent_signup_parameterized_thread_count](../../tests/test_app.py) |
+
+### TC-RACE-001: Single spot race (10 threads, 1 slot)
+
+**Description:** Verify that when 10 concurrent threads attempt to sign up for an activity with only 1 available slot, exactly 1 succeeds and 9 fail atomically.
+
+**Preconditions:**
+- Chess Club has max_participants = 12
+- Chess Club has 11 existing participants (leaving 1 slot)
+- CONCURRENT_THREADS = 10
+- Barrier synchronization enabled
+
+**Test Steps:**
+1. Create test activity with 11 pre-existing participants
+2. Verify exactly 1 slot remains available
+3. Initialize threading.Barrier with 10 threads
+4. Spawn 10 threads with unique emails (race_single_N@test.com)
+5. Each thread waits at barrier, then attempts signup simultaneously
+6. Collect all response status codes
+7. Verify state integrity (no duplicates, capacity not exceeded)
+8. Save timing metrics to JSON
+
+**Expected Results:**
+- Exactly 1 thread receives status 200 (success)
+- Exactly 9 threads receive status 400 (failure with "Activity is full")
+- Final participant count: 12 (max_participants)
+- No duplicate emails in participants list
+- Metrics JSON saved to test_metrics/race_conditions/
+- Barrier wait time < 45s threshold
+
+**Test Data:**
+- Activity: `Chess Club` (max: 12, initial: 11)
+- Emails: `race_single_0@test.com` through `race_single_9@test.com`
+- Barrier timeout: 30s (60s in CI)
+- Thread count: 10
+
+**Tags:** `slow`, `concurrency`, `race-condition`
+
+**Markers:** `@pytest.mark.slow`, `@pytest.mark.concurrency`, `@pytest.mark.flaky(reruns=2, reruns_delay=2)`
+
+### TC-RACE-002: Multiple spots race (10 threads, 3 slots)
+
+**Description:** Verify that when 10 concurrent threads compete for 3 available slots, exactly 3 succeed and 7 fail atomically.
+
+**Preconditions:**
+- Programming Class has max_participants = 10
+- Programming Class has 7 existing participants (leaving 3 slots)
+- CONCURRENT_THREADS = 10
+
+**Test Steps:**
+1. Create test activity with 7 pre-existing participants
+2. Verify exactly 3 slots remain
+3. Spawn 10 concurrent threads attempting signup
+4. Verify exactly 3 successes, 7 failures
+5. Verify final count = 10 (no overflow)
+
+**Expected Results:**
+- Exactly 3 threads succeed (status 200)
+- Exactly 7 threads fail (status 400)
+- Final participant count: 10
+- Atomic capacity enforcement
+
+**Test Data:**
+- Activity: `Programming Class` (max: 10, initial: 7)
+- Emails: `race_multi_0@test.com` through `race_multi_9@test.com`
+
+**Tags:** `slow`, `concurrency`, `race-condition`
+
+### TC-RACE-003: Cross-language race (5 EN + 5 HU)
+
+**Description:** Verify that capacity limits work correctly when concurrent signups use different language endpoints (English "Chess Club" vs Hungarian "Sakk Klub").
+
+**Preconditions:**
+- Chess Club/Sakk Klub are same activity with different translations
+- Activity has max_participants = 12
+- Activity has 8 existing participants (leaving 4 slots)
+- 5 threads use English endpoint, 5 use Hungarian endpoint
+
+**Test Steps:**
+1. Create activity with 8 participants, 4 slots available
+2. Spawn 5 threads using `/activities/Chess Club/signup?lang=en`
+3. Spawn 5 threads using `/activities/Sakk Klub/signup?lang=hu`
+4. All 10 threads synchronized via barrier
+5. Verify exactly 4 total successes across both languages
+6. Verify participants synced correctly in both language views
+
+**Expected Results:**
+- Exactly 4 threads succeed (combined EN + HU)
+- Exactly 6 threads fail
+- Same participant list returned for both languages
+- No language-specific capacity bugs
+
+**Test Data:**
+- Activity EN: `Chess Club`, HU: `Sakk Klub`
+- EN emails: `race_en_0@test.com` through `race_en_4@test.com`
+- HU emails: `race_hu_0@test.com` through `race_hu_4@test.com`
+
+**Tags:** `slow`, `concurrency`, `language`, `race-condition`
+
+### TC-RACE-004: Signup + unregister chaos (15 operations)
+
+**Description:** Verify system stability when concurrent signups and unregistrations execute simultaneously, testing state consistency under chaos.
+
+**Preconditions:**
+- Gym Class has 5 pre-registered participants
+- 10 threads will attempt signup
+- 5 threads will unregister existing participants
+- Total 15 concurrent operations
+
+**Test Steps:**
+1. Create activity with 5 existing participants
+2. Spawn 10 signup threads
+3. Spawn 5 unregister threads targeting existing participants
+4. Synchronize all 15 threads via barrier
+5. Execute operations concurrently
+6. Verify final state consistency (no duplicates, valid count)
+7. Verify no data corruption
+
+**Expected Results:**
+- No duplicate participants
+- No phantom participants (unregistered still in list)
+- Participant count ≤ max_participants
+- State integrity maintained
+- No race-induced data corruption
+
+**Test Data:**
+- Activity: `Gym Class`
+- Initial emails: `chaos_initial_0@test.com` through `chaos_initial_4@test.com`
+- Signup emails: `chaos_signup_0@test.com` through `chaos_signup_9@test.com`
+- Thread count: 15 (10 signup + 5 unregister)
+
+**Tags:** `slow`, `concurrency`, `chaos`, `race-condition`
+
+### TC-RACE-005: Tight timing stress (no barrier)
+
+**Description:** Verify system handles concurrent signups without barrier synchronization, simulating real-world random arrival timing with jitter.
+
+**Preconditions:**
+- Soccer Team has 3 available slots
+- 10 threads attempt signup
+- NO barrier synchronization (threads start with random 0-100ms jitter)
+
+**Test Steps:**
+1. Create activity with 3 available slots
+2. Spawn 10 threads, each with random.uniform(0, 0.1) sleep
+3. Threads execute without synchronization
+4. Verify capacity enforcement under timing variance
+5. Verify exactly 3 successes despite random timing
+
+**Expected Results:**
+- Exactly 3 successes (despite no barrier)
+- Capacity enforcement works with natural timing jitter
+- No timing-dependent bugs
+- Request spread > 5ms (validates non-deterministic timing)
+
+**Test Data:**
+- Activity: `Soccer Team` (3 slots available)
+- Emails: `race_jitter_0@test.com` through `race_jitter_9@test.com`
+- Jitter range: 0-100ms
+- No barrier synchronization
+
+**Tags:** `slow`, `concurrency`, `race-condition`
+
+### TC-RACE-006: Parameterized thread count (5/10/20)
+
+**Description:** Verify capacity enforcement scales correctly across different thread counts, testing system behavior under varying concurrency levels.
+
+**Preconditions:**
+- Swimming Club has 2 available slots
+- Test runs 3 times with different thread counts: 5, 10, 20
+
+**Test Steps:**
+1. For each thread count (5, 10, 20):
+   - Create fresh activity with 2 slots
+   - Spawn N threads
+   - Verify exactly 2 successes
+   - Verify N-2 failures
+   - Collect scalability metrics
+
+**Expected Results:**
+- Thread count = 5: 2 success, 3 fail
+- Thread count = 10: 2 success, 8 fail
+- Thread count = 20: 2 success, 18 fail
+- Capacity enforcement independent of thread count
+- No scalability bugs
+
+**Test Data:**
+- Activity: `Swimming Club` (2 slots)
+- Thread counts: [5, 10, 20]
+- Emails: `race_param_T{thread_count}_N{index}@test.com`
+
+**Tags:** `slow`, `concurrency`, `parameterized`, `race-condition`
+
+**Markers:** `@pytest.mark.parametrize("thread_count", [5, 10, 20])`
 
 ---
 
