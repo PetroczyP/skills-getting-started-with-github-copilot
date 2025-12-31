@@ -40,3 +40,23 @@ Thumbs.db
 .actrc*
 
 __pycache__/
+
+# Test outputs #
+################
+.pytest_cache/
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+*.cover
+test_metrics/
+test_metrics_docker/
+test_metrics_local/
+test-results/
+
+# Virtual environments #
+########################
+venv/
+env/
+ENV/
+.venv/

@@ -1,7 +1,7 @@
 # Test Strategy - Mergington High School Activities API
 
-**Last Updated:** December 20, 2025  
-**Version:** 1.0  
+**Last Updated:** December 28, 2025  
+**Version:** 1.1  
 **Maintainer:** Development Team
 
 ---
@@ -12,9 +12,12 @@
 2. [Testing Philosophy](#testing-philosophy)
 3. [Test Organization](#test-organization)
 4. [BDD Framework](#bdd-framework)
-5. [Test Markers and Categories](#test-markers-and-categories)
-6. [Test ID Convention](#test-id-convention)
-7. [Maintainability for AI-Assisted Development](#maintainability-for-ai-assisted-development)
+5. [UI Testing with Playwright](#ui-testing-with-playwright)
+7. [Test Markers and Categories](#test-markers-and-categories)
+8. [Test ID Convention](#test-id-convention)
+9. [Maintainability for AI-Assisted Development](#maintainability-for-ai-assisted-development)
+10. [Coverage Requirements](#coverage-requirements)
+11. [Maintainability for AI-Assisted Development](#maintainability-for-ai-assisted-development)
 8. [Coverage Requirements](#coverage-requirements)
 9. [How to Maintain This Documentation](#how-to-maintain-this-documentation)
 
@@ -389,6 +392,258 @@ Step definitions in `tests/step_defs/ui_steps.py` use the same Page Objects.
 
 ---
 
+## Concurrency Testing
+
+### Overview
+
+Race condition tests validate that the API correctly handles concurrent requests competing for limited resources (activity slots). These tests use **threading.Barrier** for precise synchronization and collect detailed timing metrics.
+
+**Critical Business Risk:** Without race condition testing, concurrent signups can:
+- Exceed max_participants capacity
+- Create duplicate registrations
+- Cause state corruption
+- Fail silently under load
+
+### Architecture
+
+**Pattern:** ThreadPoolExecutor + threading.Barrier synchronization
+
+```python
+from concurrent.futures import ThreadPoolExecutor
+import threading
+
+def _concurrent_signup(client, activity_name, emails, lang, barrier, race_metrics):
+    """Helper method for synchronized concurrent signups."""
+    results = []
+    
+    def signup_thread(email):
+        # Wait for all threads at barrier
+        barrier.wait()
+        
+        # Execute signup simultaneously
+        response = client.post(
+            f"/activities/{activity_name}/signup?lang={lang}",
+            json={"email": email}
+        )
+        return (email, response.status_code)
+    
+    with ThreadPoolExecutor(max_workers=len(emails)) as executor:
+        futures = [executor.submit(signup_thread, email) for email in emails]
+        results = [f.result() for f in futures]
+    
+    return results
+```
+
+**Key Components:**
+
+1. **tests/race_config.py** - Environment configuration
+   - CONCURRENT_THREADS = 10 (default thread count)
+   - BARRIER_TIMEOUT = 30s (local), 60s (CI via env var)
+   - Threshold constants for metrics validation
+
+2. **tests/race_metrics.py** - Metrics collection
+   - RaceMetricsCollector class
+   - JSON export to test_metrics/race_conditions/
+   - Threshold validation (barrier wait time, request spread)
+
+3. **tests/conftest.py** - Shared fixtures
+   - `race_metrics` fixture (yields RaceMetricsCollector)
+   - `verify_thread_cleanup` autouse fixture (validates threads complete)
+   - Marker registration for slow/concurrency tests
+
+4. **scripts/analyze_race_metrics.py** - Post-test analysis
+   - Aggregates metrics from JSON files
+   - Validates thresholds
+   - Generates summary reports
+
+### Test Categories
+
+| Test ID | Scenario | Threads | Purpose |
+|---------|----------|---------|---------|
+| TC-RACE-001 | Single spot race | 10 → 1 slot | Atomic capacity enforcement (worst case) |
+| TC-RACE-002 | Multiple spots race | 10 → 3 slots | Multi-winner atomicity |
+| TC-RACE-003 | Cross-language race | 5 EN + 5 HU | Language-agnostic capacity |
+| TC-RACE-004 | Signup + unregister chaos | 15 mixed ops | State consistency under chaos |
+| TC-RACE-005 | Tight timing stress | 10 (no barrier) | Real-world jitter handling |
+| TC-RACE-006 | Parameterized threads | [5, 10, 20] | Scalability validation |
+
+### Environment Configuration
+
+**Environment Variables:**
+
+```bash
+# Barrier timeout (seconds)
+RACE_TEST_BARRIER_TIMEOUT=30  # Local default
+RACE_TEST_BARRIER_TIMEOUT=60  # CI recommended
+
+# Enable/disable metrics collection
+RACE_TEST_METRICS=true   # Collect timing data
+RACE_TEST_METRICS=false  # Skip metrics (faster)
+
+# Run race tests
+pytest -m concurrency -v
+pytest tests/test_app.py::TestRaceConditions -v
+```
+
+**Threshold Constants:**
+
+| Threshold | Value | Purpose |
+|-----------|-------|---------|
+| MAX_BARRIER_WAIT_THRESHOLD | 45s | Detects CI resource exhaustion |
+| MIN_REQUEST_SPREAD_THRESHOLD | 5ms | Validates true concurrency (not deterministic) |
+| THREAD_CLEANUP_TIMEOUT | 5s | Maximum thread cleanup wait |
+
+### Metrics Collection
+
+**Automatic Metrics:** Each race test automatically collects:
+- Barrier wait times (start, end, duration)
+- Request execution times (per thread)
+- Success/failure counts
+- Request spread (time between first and last request)
+
+**JSON Output:** Saved to `test_metrics/race_conditions/`
+
+```json
+{
+  "test_id": "TC-RACE-001",
+  "thread_count": 10,
+  "timestamp": "20251228_204553",
+  "barrier_wait": {
+    "start": "2025-12-28T20:45:53.123",
+    "end": "2025-12-28T20:45:53.172",
+    "duration_ms": 49
+  },
+  "requests": [
+    {"thread_id": 0, "start": "...", "end": "...", "duration_ms": 12},
+    ...
+  ],
+  "statistics": {
+    "total_requests": 10,
+    "successful_requests": 1,
+    "failed_requests": 9,
+    "avg_duration_ms": 11.2,
+    "request_spread_ms": 3.66
+  }
+}
+```
+
+**Analysis:**
+
+```bash
+# Analyze specific test metrics
+python scripts/analyze_race_metrics.py --test-id TC-RACE-001 --verbose
+
+# Analyze all metrics
+python scripts/analyze_race_metrics.py --verbose
+
+# Exit code: 0 = pass, 1 = threshold violations
+```
+
+### Test Execution
+
+**Run All Race Tests:**
+```bash
+# All race condition tests (8 total: 6 base + 3 parameterized)
+pytest tests/test_app.py::TestRaceConditions -v
+
+# With metrics collection
+RACE_TEST_METRICS=true pytest tests/test_app.py::TestRaceConditions -v
+
+# Specific test
+pytest tests/test_app.py::TestRaceConditions::test_concurrent_signup_single_spot_race -v
+```
+
+**Markers:**
+- `@pytest.mark.slow` - Tests take 0.2-2s per test
+- `@pytest.mark.concurrency` - Concurrent execution tests
+- `@pytest.mark.flaky(reruns=2, reruns_delay=2)` - Retry on transient failures
+
+**Exclude Race Tests (Faster CI):**
+```bash
+# Skip slow tests
+pytest -m "not slow" -v
+
+# Skip concurrency tests specifically
+pytest -m "not concurrency" -v
+```
+
+### Validation Strategy
+
+**State Integrity Checks (all tests):**
+1. No duplicate participants
+2. Participant count ≤ max_participants
+3. Exactly expected number of successes
+4. Language synchronization (cross-language tests)
+
+**Metrics Validation (CI):**
+1. Barrier wait < MAX_BARRIER_WAIT_THRESHOLD (45s)
+2. Request spread > MIN_REQUEST_SPREAD_THRESHOLD (5ms)
+
+**Flaky Test Handling:**
+- pytest-rerunfailures plugin installed
+- Tests marked with `@pytest.mark.flaky(reruns=2, reruns_delay=2)`
+- Retries on transient failures (thread timing variance)
+
+### Best Practices
+
+**✅ DO:**
+- Use barrier synchronization for true concurrent start
+- Collect metrics to validate test effectiveness
+- Verify state integrity after each race
+- Use unique email patterns per test
+- Test multiple thread counts for scalability
+
+**❌ DON'T:**
+- Assume deterministic timing (especially on Windows)
+- Skip state verification after concurrent operations
+- Ignore metrics threshold warnings
+- Run race tests without proper cleanup fixtures
+- Test only single thread count
+
+### Docker Testing
+
+For cross-platform race condition validation:
+
+```bash
+# Run in Linux container (more realistic CI timing)
+docker build -f Dockerfile.test -t api-tests .
+docker run --rm api-tests pytest -m concurrency -v
+
+# See docs/testing/DOCKER_TESTING.md for details
+```
+
+**Why Docker Matters:**
+- Windows has deterministic thread scheduling
+- Linux scheduling closer to production
+- CI environments (GitHub Actions) run on Linux
+- Metrics differ significantly between platforms
+
+### Common Issues
+
+**Issue:** Request spread < 5ms threshold warning
+
+**Cause:** Windows thread scheduling is too deterministic
+
+**Solution:** Expected on local Windows. CI (Linux) will show realistic spread.
+
+---
+
+**Issue:** Barrier timeout after 30s
+
+**Cause:** Slow CI resources, too many concurrent tests
+
+**Solution:** Increase `RACE_TEST_BARRIER_TIMEOUT=60` or `RACE_TEST_BARRIER_TIMEOUT=120`
+
+---
+
+**Issue:** Capacity exceeded (e.g., 13 participants when max=12)
+
+**Cause:** Race condition bug in application logic
+
+**Solution:** Fix atomic capacity check in service layer
+
+---
+
 ## Test Markers and Categories
 
 ### Custom Pytest Markers
@@ -402,6 +657,9 @@ All tests must use appropriate markers for categorization and selective executio
 | `@pytest.mark.infrastructure` | Infrastructure validation | All tests in `test_infrastructure.py` |
 | `@pytest.mark.capacity` | Capacity enforcement tests | Capacity-related signup tests |
 | `@pytest.mark.language` | Dual-language feature tests | Hungarian/English translation tests |
+| `@pytest.mark.slow` | Tests taking >0.2s | Race condition tests, capacity fill tests |
+| `@pytest.mark.concurrency` | Concurrent execution tests | All race condition tests |
+| `@pytest.mark.flaky(reruns=N)` | Retry on failure N times | Race tests with timing variance |
 | `@pytest.mark.bdd` | BDD scenario tests | Tests generated from `.feature` files |
 | `@pytest.mark.e2e` | End-to-end UI tests | Playwright tests |
 | `@pytest.mark.ui` | UI component tests | Playwright tests |
@@ -418,6 +676,12 @@ pytest -m capacity
 
 # Run infrastructure tests first (recommended workflow)
 pytest -m infrastructure && pytest -m functional
+
+# Run race condition tests
+pytest -m concurrency
+
+# Run all tests except slow tests
+pytest -m "not slow"
 
 # Run BDD scenarios only
 pytest -m bdd
@@ -437,23 +701,33 @@ pytest tests/playwright/
 # Run specific test by ID (using -k for keyword matching)
 pytest -k "TC_SIGNUP_001"
 pytest -k "TC_UI_LANG"
+pytest -k "TC_RACE"
 ```
 
 ---
 
 ## Test ID Convention
-
-### Format: `TC-[AREA]-[NUMBER]`
-
-**Area Codes:**
-
-| Code | Area | Example |
-|------|------|---------|
+ROOT` | Root endpoint | `TC-ROOT-001` |
 | `SIGNUP` | Activity signup functionality | `TC-SIGNUP-001` |
 | `UNREGISTER` | Activity unregistration | `TC-UNREGISTER-001` |
 | `ACTIVITIES` | Activity listing/retrieval | `TC-ACTIVITIES-001` |
 | `CAPACITY` | Capacity enforcement | `TC-CAPACITY-001` |
 | `LANGUAGE` | Bilingual functionality | `TC-LANGUAGE-001` |
+| `RACE` | Race condition/concurrency tests | `TC-RACE-001` |
+| `INFRA-IMPORT` | Module imports | `TC-INFRA-IMPORT-001` |
+| `INFRA-APP` | App creation | `TC-INFRA-APP-001` |
+| `INFRA-DATA` | Data structures | `TC-INFRA-DATA-001` |
+| `INFRA-DEPS` | Dependencies | `TC-INFRA-DEPS-001` |
+| `INFRA-FILES` | Static files | `TC-INFRA-FILES-001` |
+| `INFRA-SERVER` | Server startup | `TC-INFRA-SERVER-001` |
+| `INFRA-QUALITY` | Code quality | `TC-INFRA-QUALITY-001` |
+| `INFRA-ENDPOINT` | Endpoint functions | `TC-INFRA-ENDPOINT-001` |
+| `INFRA-VALIDATOR` | Validator functions | `TC-INFRA-VALIDATOR-001` |
+| `UI-LANG` | UI language switching | `TC-UI-LANG-001` |
+| `UI-SIGNUP` | UI signup forms | `TC-UI-SIGNUP-001` |
+| `UI-UNREG` | UI unregister/delete | `TC-UI-UNREG-001` |
+| `UI-CAPACITY` | UI capacity display/enforcement | `TC-UI-CAPACITY-001` |
+| `UI-DISPLAY` | UI activity display | `TC-UI-DISPLAGE-001` |
 | `INFRA-IMPORT` | Module imports | `TC-INFRA-IMPORT-001` |
 | `INFRA-APP` | App creation | `TC-INFRA-APP-001` |
 | `INFRA-DATA` | Data structures | `TC-INFRA-DATA-001` |

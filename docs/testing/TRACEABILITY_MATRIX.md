@@ -1,6 +1,6 @@
 # Traceability Matrix - Mergington High School Activities API
 
-**Last Updated:** December 20, 2025  
+**Last Updated:** December 28, 2025  
 **Purpose:** Links user requirements to test cases to automated tests
 
 ---
@@ -39,10 +39,11 @@
 | Feature | Requirements | Test Cases | Automation | Coverage |
 |---------|--------------|------------|------------|----------|
 | **Activity Listing** | US-001, US-004, US-005 | TC-ACTIVITIES-001 through TC-ACTIVITIES-005, TC-LANGUAGE-001, TC-LANGUAGE-002 | ✅ 7 tests | 100% |
-| **Activity Signup** | US-002, US-006, US-007, US-008 | TC-SIGNUP-001 through TC-SIGNUP-005, TC-CAPACITY-001 through TC-CAPACITY-004 | ✅ 9 tests | 100% |
+| **Activity Signup** | US-002, US-006, US-007, US-008 | TC-SIGNUP-001 through TC-SIGNUP-005, TC-CAPACITY-001 through TC-CAPACITY-004, TC-RACE-001 through TC-RACE-006 | ✅ 15 tests | 100% |
 | **Activity Unregister** | US-003 | TC-UNREGISTER-001 through TC-UNREGISTER-005 | ✅ 5 tests | 100% |
 | **Language Support** | US-004 | TC-LANGUAGE-001, TC-LANGUAGE-002, plus all *-002 variants | ✅ 9 tests | 100% |
-| **Capacity Management** | US-006 | TC-CAPACITY-001 through TC-CAPACITY-004 | ✅ 4 tests | 100% |
+| **Capacity Management** | US-006 | TC-CAPACITY-001 through TC-CAPACITY-004, TC-RACE-001 through TC-RACE-006 | ✅ 10 tests | 100% |
+| **Race Conditions** | US-006 | TC-RACE-001 through TC-RACE-006 | ✅ 6 tests | 100% |
 | **Infrastructure** | US-009 | TC-INFRA-* (40 tests) | ✅ 40 tests | 100% |
 
 ---
@@ -153,6 +154,7 @@
 - ✅ AC-006-02: Error message displayed in appropriate language
 - ✅ AC-006-03: Participant count does not exceed limit
 - ✅ AC-006-04: Last available slot can be filled
+- ✅ AC-006-05: Concurrent signups correctly enforced (race conditions)
 
 | Test Case ID | Test Name | Automation | Status |
 |--------------|-----------|------------|--------|
@@ -160,6 +162,12 @@
 | TC-CAPACITY-002 | Reject signup at capacity (Hungarian) | [test_app.py](../../tests/test_app.py) | ✅ Pass |
 | TC-CAPACITY-003 | Allow signup one below capacity | [test_app.py](../../tests/test_app.py) | ✅ Pass |
 | TC-CAPACITY-004 | Sequential signup capacity check | [test_app.py](../../tests/test_app.py) | ✅ Pass |
+| TC-RACE-001 | Single spot race (10 threads, 1 slot) | [test_app.py](../../tests/test_app.py) | ✅ Pass |
+| TC-RACE-002 | Multiple spots race (10 threads, 3 slots) | [test_app.py](../../tests/test_app.py) | ✅ Pass |
+| TC-RACE-003 | Cross-language race (5 EN + 5 HU) | [test_app.py](../../tests/test_app.py) | ✅ Pass |
+| TC-RACE-004 | Signup + unregister chaos (15 ops) | [test_app.py](../../tests/test_app.py) | ✅ Pass |
+| TC-RACE-005 | Tight timing stress (no barrier) | [test_app.py](../../tests/test_app.py) | ✅ Pass |
+| TC-RACE-006 | Parameterized thread count (5/10/20) | [test_app.py](../../tests/test_app.py) | ✅ Pass |
 
 ---
 
@@ -225,15 +233,15 @@
 
 ### Requirements Coverage
 
-| Requirement ID | Title | Test Cases | Automation | Coverage |
-|----------------|-------|------------|------------|----------|
-| US-001 | View Activities | 4 | ✅ Yes | 100% |
-| US-002 | Sign Up | 4 | ✅ Yes | 100% |
-| US-003 | Unregister | 5 | ✅ Yes | 100% |
-| US-004 | Language Support | 7 | ✅ Yes | 100% |
-| US-005 | View Spots | 2 | ✅ Yes | 100% |
-| US-006 | Prevent Full Signups | 4 | ✅ Yes | 100% |
+| Requirement ID | Title | Test Ca10 | ✅ Yes | 100% |
 | US-007 | Prevent Duplicates | 1 | ✅ Yes | 100% |
+| US-008 | Email Validation | 2 | ✅ Yes | 100% |
+| US-009 | Infrastructure | 40 | ✅ Yes | 100% |
+
+**Total Requirements:** 9  
+**Total Covered:** 9 (100%)  
+**Total Test Cases:** 67  
+**Total Automated:** 67icates | 1 | ✅ Yes | 100% |
 | US-008 | Email Validation | 2 | ✅ Yes | 100% |
 | US-009 | Infrastructure | 40 | ✅ Yes | 100% |
 
@@ -248,11 +256,16 @@
 |----------|--------|------------|----------|
 | `/` | GET | 1 | 100% |
 | `/activities` | GET | 6 | 100% |
-| `/activities/{name}/signup` | POST | 9 | 100% |
+| `/activities/{name}/signup` | POST | 15 | 100% |
 | `/activities/{name}/unregister` | DELETE | 5 | 100% |
 
 **Total Endpoints:** 4  
 **Total Covered:** 4 (100%)
+
+**Concurrency Coverage:**
+- Race condition tests: 6 tests (8 including parameterized variations)
+- Thread counts tested: 5, 10, 15, 20
+- Scenarios: Single slot, multiple slots, cross-language, chaos, no-barrier, parameterized
 
 ### Activity Coverage
 
@@ -308,8 +321,8 @@ All 9 activities tested:
 
 1. Update status to "❌ Deprecated"
 2. Mark related test cases as deprecated
-3. Update coverage summary
-4. Keep in matrix for historical reference
+3. Update coverage summary8, 2025  
+**Next Review:** March 28torical reference
 
 ---
 

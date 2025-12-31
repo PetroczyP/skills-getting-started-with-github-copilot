@@ -1,0 +1,33 @@
+# Test Dockerfile for Mergington High School Activities API
+# Purpose: Run tests in isolated Linux environment
+
+FROM python:3.13-slim
+
+# Set working directory
+WORKDIR /app
+
+# Install dependencies first (better layer caching)
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application source code
+COPY src/ ./src/
+
+# Copy test files
+COPY tests/ ./tests/
+
+# Copy scripts
+COPY scripts/ ./scripts/
+
+# Copy pytest configuration
+COPY pytest.ini .
+
+# Set Python path
+ENV PYTHONPATH=/app
+
+# Set default environment variables for tests
+ENV RACE_TEST_BARRIER_TIMEOUT=60
+ENV RACE_TEST_METRICS=true
+
+# Default command: run all tests
+CMD ["pytest", "-v"]
