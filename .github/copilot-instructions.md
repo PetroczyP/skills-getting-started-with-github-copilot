@@ -603,21 +603,22 @@ assert "test@example.com" in activities_en["Chess Club"]["participants"]
 - [scripts/analyze_race_metrics.py](../scripts/analyze_race_metrics.py) - Metrics analysis tool
 - [scripts/run_docker_tests.sh](../scripts/run_docker_tests.sh) - Docker test runner
 
-###docs/testing/RACE_CONDITION_TESTING.md](../docs/testing/RACE_CONDITION_TESTING.md) - Race condition test guide
+### Documentation
+- [docs/testing/RACE_CONDITION_TESTING.md](../docs/testing/RACE_CONDITION_TESTING.md) - Race condition test guide
 - [docs/testing/DOCKER_TESTING.md](../docs/testing/DOCKER_TESTING.md) - Cross-platform Docker testing
-- [ Documentation
 - [docs/testing/TEST_STRATEGY.md](../docs/testing/TEST_STRATEGY.md) - Testing philosophy and approach
 - [docs/testing/TEST_CASES.md](../docs/testing/TEST_CASES.md) - Test case registry with IDs
 - [docs/testing/TRACEABILITY_MATRIX.md](../docs/testing/TRACEABILITY_MATRIX.md) - Requirements traceability
 - [API_MIGRATION.md](../API_MIGRATION.md) - API breaking changes (query params → request body)
 - [CONTRIBUTING.md](../CONTRIBUTING.md) - Development setup and guidelines
 - [README.md](../README.md) - Project overview
-, pytest-rerunfailures
+
+### Configuration
+- [requirements.txt](../requirements.txt) - Python dependencies (pytest, pytest-rerunfailures)
+- [pytest.ini](../pytest.ini) - Pytest markers and configuration
 - [.githooks/pre-commit](../.githooks/pre-commit) - Pre-commit validation hook
 - [.gitignore](../.gitignore) - Git ignore patterns
 - [Dockerfile.test](../Dockerfile.test) - Docker image for cross-platform testing
 - [.dockerignore](../.dockerignore) - Docker build context exclusions
 
-**Last Updated:** December 28 - Git ignore patterns
-
-**Last Updated:** December 20, 2025
+**Last Updated:** December 31, 2025

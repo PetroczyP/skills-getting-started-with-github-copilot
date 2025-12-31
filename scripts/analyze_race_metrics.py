@@ -18,7 +18,7 @@ Exit Codes:
 import argparse
 import json
 import sys
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Tuple
 from collections import defaultdict

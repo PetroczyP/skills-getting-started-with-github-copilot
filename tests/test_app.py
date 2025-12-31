@@ -876,7 +876,6 @@ class TestRaceConditions:
         activity = client.get("/activities?lang=en").json()[activity_name]
         max_participants = activity["max_participants"]
         current_count = len(activity["participants"])
-        existing_participants = activity["participants"].copy()
 
         # Fill to capacity if not already
         slots_to_fill = max_participants - current_count

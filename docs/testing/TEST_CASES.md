@@ -16,7 +16,6 @@
 6. [Language Support Tests](#language-support-tests)
 7. [Race Condition Tests](#race-condition-tests)
 8. [Infrastructure Tests](#infrastructure-tests)
-8. [Infrastructure Tests](#infrastructure-tests)
 9. [UI Language Switching Tests](#ui-language-switching-tests)
 10. [UI Signup Tests](#ui-signup-tests)
 11. [UI Unregister Tests](#ui-unregister-tests)

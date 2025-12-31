@@ -13,13 +13,12 @@
 3. [Test Organization](#test-organization)
 4. [BDD Framework](#bdd-framework)
 5. [UI Testing with Playwright](#ui-testing-with-playwright)
+6. [Concurrency Testing](#concurrency-testing)
 7. [Test Markers and Categories](#test-markers-and-categories)
 8. [Test ID Convention](#test-id-convention)
 9. [Maintainability for AI-Assisted Development](#maintainability-for-ai-assisted-development)
 10. [Coverage Requirements](#coverage-requirements)
-11. [Maintainability for AI-Assisted Development](#maintainability-for-ai-assisted-development)
-8. [Coverage Requirements](#coverage-requirements)
-9. [How to Maintain This Documentation](#how-to-maintain-this-documentation)
+11. [How to Maintain This Documentation](#how-to-maintain-this-documentation)
 
 ---
 
@@ -707,7 +706,14 @@ pytest -k "TC_RACE"
 ---
 
 ## Test ID Convention
-ROOT` | Root endpoint | `TC-ROOT-001` |
+
+### Format: `TC-[AREA]-[NUMBER]`
+
+**Area Codes:**
+
+| Code | Area | Example |
+|------|------|---------|
+| `ROOT` | Root endpoint | `TC-ROOT-001` |
 | `SIGNUP` | Activity signup functionality | `TC-SIGNUP-001` |
 | `UNREGISTER` | Activity unregistration | `TC-UNREGISTER-001` |
 | `ACTIVITIES` | Activity listing/retrieval | `TC-ACTIVITIES-001` |
@@ -727,14 +733,7 @@ ROOT` | Root endpoint | `TC-ROOT-001` |
 | `UI-SIGNUP` | UI signup forms | `TC-UI-SIGNUP-001` |
 | `UI-UNREG` | UI unregister/delete | `TC-UI-UNREG-001` |
 | `UI-CAPACITY` | UI capacity display/enforcement | `TC-UI-CAPACITY-001` |
-| `UI-DISPLAY` | UI activity display | `TC-UI-DISPLAGE-001` |
-| `INFRA-IMPORT` | Module imports | `TC-INFRA-IMPORT-001` |
-| `INFRA-APP` | App creation | `TC-INFRA-APP-001` |
-| `INFRA-DATA` | Data structures | `TC-INFRA-DATA-001` |
-| `INFRA-DEPS` | Dependencies | `TC-INFRA-DEPS-001` |
-| `INFRA-FILES` | Static files | `TC-INFRA-FILES-001` |
-| `INFRA-SERVER` | Server startup | `TC-INFRA-SERVER-001` |
-| `INFRA-QUALITY` | Code quality | `TC-INFRA-QUALITY-001` |
+| `UI-DISPLAY` | UI activity display | `TC-UI-DISPLAY-001` |
 
 ### Decorator Usage
 

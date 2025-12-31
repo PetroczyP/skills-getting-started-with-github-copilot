@@ -233,7 +233,14 @@
 
 ### Requirements Coverage
 
-| Requirement ID | Title | Test Ca10 | ✅ Yes | 100% |
+| Requirement ID | Title | Test Cases | Covered | Coverage |
+|----------------|-------|------------|---------|----------|
+| US-001 | View Activities (EN) | 3 | ✅ Yes | 100% |
+| US-002 | View Activities (HU) | 2 | ✅ Yes | 100% |
+| US-003 | Signup for Activity | 9 | ✅ Yes | 100% |
+| US-004 | Unregister from Activity | 5 | ✅ Yes | 100% |
+| US-005 | Capacity Enforcement | 6 | ✅ Yes | 100% |
+| US-006 | Concurrent Signup Validation | 6 | ✅ Yes | 100% |
 | US-007 | Prevent Duplicates | 1 | ✅ Yes | 100% |
 | US-008 | Email Validation | 2 | ✅ Yes | 100% |
 | US-009 | Infrastructure | 40 | ✅ Yes | 100% |
@@ -241,14 +248,7 @@
 **Total Requirements:** 9  
 **Total Covered:** 9 (100%)  
 **Total Test Cases:** 67  
-**Total Automated:** 67icates | 1 | ✅ Yes | 100% |
-| US-008 | Email Validation | 2 | ✅ Yes | 100% |
-| US-009 | Infrastructure | 40 | ✅ Yes | 100% |
-
-**Total Requirements:** 9  
-**Total Covered:** 9 (100%)  
-**Total Test Cases:** 61  
-**Total Automated:** 61 (100%)
+**Total Automated:** 67 (100%)
 
 ### API Endpoint Coverage
 
@@ -321,11 +321,11 @@ All 9 activities tested:
 
 1. Update status to "❌ Deprecated"
 2. Mark related test cases as deprecated
-3. Update coverage summary8, 2025  
-**Next Review:** March 28torical reference
+3. Update coverage summary
+4. If tests are removed, keep their IDs in [TEST_CASES.md](TEST_CASES.md) as historical reference
 
 ---
 
-**Last Review:** December 20, 2025  
-**Next Review:** March 20, 2026  
+**Last Review:** December 31, 2025  
+**Next Review:** March 31, 2026  
 **Reviewed By:** Development Team
