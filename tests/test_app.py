@@ -23,6 +23,7 @@ from tests.race_metrics import RaceMetricsCollector
 logger = logging.getLogger(__name__)
 
 
+@pytest.mark.functional
 class TestRootEndpoint:
     """Tests for the root endpoint"""
 
@@ -34,6 +35,7 @@ class TestRootEndpoint:
         assert response.headers["location"] == "/static/index.html"
 
 
+@pytest.mark.functional
 class TestGetActivities:
     """Tests for GET /activities endpoint"""
 
@@ -107,6 +109,7 @@ class TestGetActivities:
         )
 
 
+@pytest.mark.functional
 class TestSignupForActivity:
     """Tests for POST /activities/{activity_name}/signup endpoint"""
 
@@ -380,6 +383,7 @@ class TestSignupForActivity:
             assert response.json()["detail"] == "Activity is full"
 
 
+@pytest.mark.functional
 class TestUnregisterFromActivity:
     """Tests for DELETE /activities/{activity_name}/unregister endpoint"""
 

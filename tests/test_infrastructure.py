@@ -22,6 +22,7 @@ configuration and import issues early in the development cycle.
 import pytest
 
 
+@pytest.mark.infrastructure
 class TestModuleImports:
     """Test that all modules can be imported without errors"""
 
@@ -157,6 +158,7 @@ class TestModuleImports:
         assert callable(ActivityService)
 
 
+@pytest.mark.infrastructure
 class TestApplicationCreation:
     """Test that the FastAPI application can be created successfully"""
 
@@ -204,6 +206,7 @@ class TestApplicationCreation:
         assert "email" in UnregisterRequest.model_fields
 
 
+@pytest.mark.infrastructure
 class TestDataStructures:
     """Test that all required data structures are properly initialized"""
 
@@ -275,6 +278,7 @@ class TestDataStructures:
             assert activity_name_mapping_reverse[hu_name] == en_name
 
 
+@pytest.mark.infrastructure
 class TestDependencies:
     """Test that all required dependencies are available"""
 
@@ -333,6 +337,7 @@ class TestDependencies:
             pytest.fail("httpx is not installed")
 
 
+@pytest.mark.infrastructure
 class TestStaticFiles:
     """Test that static files exist and are accessible"""
 
@@ -395,6 +400,7 @@ class TestStaticFiles:
         assert "signup" in content or "signup-form" in content
 
 
+@pytest.mark.infrastructure
 class TestEndpointFunctions:
     """Test that endpoint handler functions work correctly"""
 
@@ -429,6 +435,7 @@ class TestEndpointFunctions:
                         f"Participants not synced for {en_name}/{hu_name}"
 
 
+@pytest.mark.infrastructure
 class TestValidatorFunctions:
     """Test that validator functions work as expected"""
 
@@ -486,6 +493,7 @@ class TestValidatorFunctions:
         assert exc_info.value.status_code == 400
 
 
+@pytest.mark.infrastructure
 class TestServerStartup:
     """Test that the server can be started (using TestClient as proxy)"""
 
@@ -522,6 +530,7 @@ class TestServerStartup:
         assert response.status_code == 200
 
 
+@pytest.mark.infrastructure
 class TestCodeQuality:
     """Test code quality and best practices"""
 
