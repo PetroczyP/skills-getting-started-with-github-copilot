@@ -19,7 +19,7 @@ import logging
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from tests.race_config import (
     METRICS_OUTPUT_DIR,
@@ -67,7 +67,7 @@ class RaceMetricsCollector:
         """
         self.requests.append((thread_id, start_time, end_time, status_code))
 
-    def calculate_statistics(self) -> Dict[str, any]:
+    def calculate_statistics(self) -> Dict[str, Any]:
         """Calculate aggregate statistics from collected metrics.
 
         Returns:

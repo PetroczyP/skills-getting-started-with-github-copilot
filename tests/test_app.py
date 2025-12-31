@@ -13,6 +13,8 @@ import pytest
 import threading
 import time
 import random
+
+from src.app import activity_name_mapping
 import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from fastapi.testclient import TestClient
@@ -595,13 +597,8 @@ class TestRaceConditions:
         # Get activity data in both languages
         en_data = client.get("/activities?lang=en").json()[activity_name]
 
-        # Get Hungarian name
-        activity_mapping = {
-            "Chess Club": "Sakk Klub",
-            "Programming Class": "Programozás Tanfolyam",
-            "Gym Class": "Tornaterem",
-        }
-        hu_name = activity_mapping.get(activity_name, activity_name)
+        # Get Hungarian name from centralized mapping
+        hu_name = activity_name_mapping.get(activity_name, activity_name)
         hu_data = client.get("/activities?lang=hu").json()[hu_name]
 
         participants = en_data["participants"]
