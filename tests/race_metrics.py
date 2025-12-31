@@ -180,28 +180,38 @@ class RaceMetricsCollector:
         logger.info(f"Total Requests:        {stats['total_requests']:>8}")
         logger.info("=" * 60)
 
-    def check_thresholds(self) -> None:
+    def check_thresholds(self) -> List[str]:
         """Validate metrics against alert thresholds and log warnings.
 
         Logs warnings (but does not fail tests) if:
-        - Average barrier wait time exceeds MAX_BARRIER_WAIT_THRESHOLD
+        - Barrier wait time exceeds MAX_BARRIER_WAIT_THRESHOLD
         - Request spread is below MIN_REQUEST_SPREAD_THRESHOLD
+        
+        Returns:
+            List of warning messages (empty if all thresholds pass)
         """
         stats = self.calculate_statistics()
+        warnings = []
 
         # Check barrier wait threshold
         barrier_wait_seconds = stats["barrier_wait_ms"] / 1000
         if barrier_wait_seconds > MAX_BARRIER_WAIT_THRESHOLD:
-            logger.warning(
+            warning = (
                 f"⚠️  Barrier wait time ({barrier_wait_seconds:.2f}s) exceeds threshold "
                 f"({MAX_BARRIER_WAIT_THRESHOLD}s). This may indicate CI resource constraints "
                 f"or potential deadlocks. Consider increasing RACE_TEST_BARRIER_TIMEOUT."
             )
+            logger.warning(warning)
+            warnings.append(warning)
 
         # Check request spread threshold
         if stats["request_spread_ms"] < MIN_REQUEST_SPREAD_THRESHOLD:
-            logger.warning(
+            warning = (
                 f"⚠️  Request spread ({stats['request_spread_ms']:.2f}ms) is below threshold "
                 f"({MIN_REQUEST_SPREAD_THRESHOLD}ms). Race condition may be too deterministic "
                 f"to validate concurrent behavior effectively."
             )
+            logger.warning(warning)
+            warnings.append(warning)
+        
+        return warnings

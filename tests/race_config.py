@@ -45,8 +45,17 @@ CI environments should use 60s: RACE_TEST_BARRIER_TIMEOUT=60"""
 THREAD_CLEANUP_TIMEOUT = 5.0
 """Maximum time to wait for thread cleanup after test completion (seconds)."""
 
+
 # Metrics configuration
-ENABLE_TIMING_METRICS = os.getenv("RACE_TEST_METRICS", "true").lower() == "true"
+def _parse_bool_env(value: str) -> bool:
+    """Parse boolean environment variable with flexible value support.
+
+    Accepts: true/yes/on/1 (case-insensitive) as True, anything else as False.
+    """
+    return value.lower() in ("true", "yes", "on", "1")
+
+
+ENABLE_TIMING_METRICS = _parse_bool_env(os.getenv("RACE_TEST_METRICS", "true"))
 """Whether to collect and save detailed timing metrics to JSON files."""
 
 METRICS_OUTPUT_DIR = Path("test_metrics/race_conditions")
@@ -54,7 +63,7 @@ METRICS_OUTPUT_DIR = Path("test_metrics/race_conditions")
 
 # Alert thresholds for CI metrics validation
 MAX_BARRIER_WAIT_THRESHOLD = 45.0
-"""Maximum acceptable average barrier wait time (seconds).
+"""Maximum acceptable barrier wait time in seconds (total, not average).
 Exceeding this threshold may indicate CI resource constraints or deadlocks."""
 
 MIN_REQUEST_SPREAD_THRESHOLD = 5.0
